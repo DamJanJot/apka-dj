@@ -1,7 +1,7 @@
 
 # DJ Dashboard (React + Vite + TypeScript)
 
-Lekki szkielet aplikacji z **panelem bocznym** i **widokiem dashboardu** (kafle + wykresy), wizualnie zbliżony do Twoich screenów.
+Lekki szkielet aplikacji z **panelem bocznym** i **widokiem dashboardu** (kafle + wykresy)
 
 ## Szybki start
 ```bash
@@ -30,4 +30,4 @@ Zamiast mocków w `services/mock.ts` wstaw zapytania do Twojego back-endu (Larav
 - Build Command: `npm run build`
 - Output Directory: `dist`
 
-Miłego hackowania 👊
+
