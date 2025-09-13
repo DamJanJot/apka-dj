@@ -1,27 +1,43 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import Sidebar from './components/Sidebar'
-import Topbar from './components/Topbar'
-import Dashboard from './pages/Dashboard'
-import News from './pages/News'
-import Markets from './pages/Markets'
-import Docs from './pages/Docs'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from '@/context/AuthContext'
 
-export default function App() {
+import Layout from '@/layout/Layout' // Twój układ z Sidebar + Topbar
+
+
+import Dashboard from '@/pages/Dashboard'
+import News from '@/pages/News'
+import Markets from '@/pages/Markets'
+import Docs from '@/pages/Docs'
+import Login from '@/pages/Login'
+
+function Protected({ children }: { children: JSX.Element }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div className="content">Ładowanie…</div>
+  if (!user) return <Navigate to="/login" replace />
+  return children
+}
+
+export default function App(){
   return (
-    <div className="layout">
-      <Sidebar />
-      <div className="main">
-        <Topbar />
-        <div className="content">
-          <Routes>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<Login/>} />
+          <Route element={
+            <Protected>
+              <Layout />
+            </Protected>
+          }>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/news" element={<News />} />
             <Route path="/markets" element={<Markets />} />
             <Route path="/docs" element={<Docs />} />
-          </Routes>
-        </div>
-      </div>
-    </div>
+          </Route>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   )
 }
+

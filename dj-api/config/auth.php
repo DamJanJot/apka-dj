@@ -35,12 +35,24 @@ return [
     |
     */
 
-    'guards' => [
-        'web' => [
-            'driver' => 'session',
-            'provider' => 'users',
-        ],
+'guards' => [
+    'web' => [
+        'driver' => 'session',
+        'provider' => 'legacy',
     ],
+    'api' => [
+        'driver' => 'sanctum',
+        'provider' => 'legacy',
+    ],
+],
+
+'providers' => [
+    'legacy' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\LegacyUser::class,
+    ],
+],
+
 
     /*
     |--------------------------------------------------------------------------
