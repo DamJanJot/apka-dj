@@ -1,53 +1,74 @@
 <?php
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\NewsController;
-use App\Http\Controllers\Api\RateController;
-use App\Http\Controllers\Api\CryptoController;
-use App\Http\Controllers\Api\GoldController;
+use App\Models\LegacyUser;
+use App\Models\News;
+use App\Models\Rate;
+use App\Models\Crypto;
+use App\Models\GoldPrice;
 
-Route::get('/news',  [NewsController::class, 'index']);
-Route::get('/rates', [RateController::class, 'index']);
-Route::get('/crypto', [CryptoController::class, 'index']);
-Route::get('/gold',  [GoldController::class, 'index']);
+// ---------- AUTH (SPA cookie) ----------
 
+Route::post('/login', function (Request $request) {
+    $data = $request->validate([
+        'email' => ['required','email'],
+        'password' => ['required','string'],
+    ]);
 
-use App\Http\Controllers\Auth\MeController;
+    // 1) standard (bcrypt) – działa dzięki getAuthPassword() w LegacyUser
+    if (Auth::attempt(['email' => $data['email'], 'password' => $data['password']])) {
+        $request->session()->regenerate();
+        return response()->json(['ok' => true]);
+    }
 
-Route::middleware('auth:sanctum')->get('/me', MeController::class);
+    // 2) fallback md5 -> migracja do bcrypt
+    $u = LegacyUser::where('email', $data['email'])->first();
+    if ($u) {
+        $raw = $data['password'];
+        $db  = (string) $u->haslo;
 
+        $looksBcrypt = str_starts_with($db, '$2y$');
+        if (!$looksBcrypt && md5($raw) === $db) {
+            // ZAPISUJEMY DO "haslo", nie "password"
+            $u->forceFill(['haslo' => Hash::make($raw)])->save();
 
+            Auth::login($u);
+            $request->session()->regenerate();
+            return response()->json(['ok' => true, 'upgraded' => true]);
+        }
+    }
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/tasks', [\App\Http\Controllers\TaskController::class, 'index']);
-    Route::post('/tasks', [\App\Http\Controllers\TaskController::class, 'store']);
-    Route::patch('/tasks/{task}/toggle', [\App\Http\Controllers\TaskController::class, 'toggle']);
-    Route::delete('/tasks/{task}', [\App\Http\Controllers\TaskController::class, 'destroy']);
+    return response()->json(['message' => 'Nieprawidłowe dane logowania'], 422);
 });
 
+Route::post('/logout', function (Request $request) {
+    Auth::guard('web')->logout();
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
+    return response()->json(['ok' => true]);
+})->middleware('auth:sanctum');
 
+Route::get('/me', function (Request $request) {
+    $u = $request->user(); // LegacyUser
+    if (!$u) return response()->json(null, 401);
 
+    return response()->json([
+        'id' => $u->id,
+        'email' => $u->email,
+        'name' => $u->name,
+        'imie' => $u->imie,
+        'nazwisko' => $u->nazwisko,
+        'nick' => $u->nick,
+        'rola' => $u->rola,
+        'avatar' => $u->zdjecie_profilowe,
+    ]);
+})->middleware('auth:sanctum');
 
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/notes', [\App\Http\Controllers\NoteController::class, 'index']);
-    Route::post('/notes', [\App\Http\Controllers\NoteController::class, 'store']);
-    Route::patch('/notes/{note}', [\App\Http\Controllers\NoteController::class, 'update']);
-    Route::delete('/notes/{note}', [\App\Http\Controllers\NoteController::class, 'destroy']);
-});
-
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/chat/{userId}', [\App\Http\Controllers\MessageController::class, 'thread']);
-    Route::post('/chat/send', [\App\Http\Controllers\MessageController::class, 'send']);
-});
-    Route::post('/chat/mark-read/{messageId}', [\App\Http\Controllers\MessageController::class, 'markRead']);
-    Route::delete('/chat/{messageId}', [\App\Http\Controllers\MessageController::class, 'destroy']);
-
-
-
-Route::post('/login', [\App\Http\Controllers\Auth\LoginController::class, 'login'])->name('login');
-Route::post('/logout', [\App\Http\Controllers\Auth\LoginController::class, 'logout'])->middleware('auth');
-Route::get('/me', function() {
-    return auth()->user();
-})->middleware('auth');
+// ---------- FEEDY ----------
+Route::get('/news', fn() => News::orderByDesc('id')->limit(30)->get());
+Route::get('/rates', fn() => Rate::orderBy('id')->get());
+Route::get('/crypto', fn() => Crypto::orderBy('id')->get());
+Route::get('/gold', fn() => GoldPrice::orderBy('id')->get());

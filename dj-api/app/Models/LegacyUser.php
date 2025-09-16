@@ -4,34 +4,43 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
 
 class LegacyUser extends Authenticatable
 {
-    use Notifiable, HasApiTokens;
+    use Notifiable;
 
     protected $table = 'uzytkownicy';
+    protected $primaryKey = 'id';
     public $timestamps = false;
 
-    protected $fillable = [
-        'imie', 'nazwisko', 'email', 'haslo', 'zdjecie_profilowe', 'nick', 'opis', 'rola'
-    ];
-
+    // pilnuj, żeby hasła nie wychodziły w JSON
     protected $hidden = ['haslo'];
 
+    // pozwól na masowe wypełnianie (albo ustaw $guarded = [])
+    protected $fillable = [
+        'email', 'imie', 'nazwisko', 'nick', 'rola', 'zdjecie_profilowe', 'haslo',
+    ];
+
+    /**
+     * Laravel przy logowaniu odpytuje getAuthPassword().
+     * Zwracamy kolumnę "haslo", a nie "password".
+     */
     public function getAuthPassword()
     {
-        // Laravel będzie porównywał hasło z kolumną `haslo` (bcrypt)
         return $this->haslo;
     }
 
-    public function getNameAttribute(): string
+    /**
+     * Opcjonalnie: jeśli gdzieś w kodzie ktoś ustawi $user->password,
+     * to przemapuj to na kolumnę "haslo".
+     */
+    public function setPasswordAttribute($value)
     {
-        return trim(($this->imie ?? '').' '.($this->nazwisko ?? '')) ?: ($this->nick ?? 'Użytkownik');
+        $this->attributes['haslo'] = $value;
     }
 
-    public function getAvatarUrlAttribute(): ?string
+    public function getPasswordAttribute()
     {
-        return $this->zdjecie_profilowe ?: null;
+        return $this->attributes['haslo'] ?? null;
     }
 }
