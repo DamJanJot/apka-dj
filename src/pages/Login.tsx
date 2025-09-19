@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { AlignCenter } from 'lucide-react'
 
 export default function Login() {
   const { login } = useAuth()
@@ -21,9 +22,9 @@ export default function Login() {
   }
 
   return (
-    <div className="container">
-      <form onSubmit={onSubmit} className="widget" style={{ width: 360 }}>
-        <h3 style={{ marginTop: 0, textAlign: 'center' }}>Logowanie</h3>
+    <div className="container" style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+      <form onSubmit={onSubmit} className="widget" style={{ objectPosition: "center", height: 300, width: 360}}>
+        <h1 style={{ marginTop: 0, marginBottom: 32, textAlign: 'center' }}>Logowanie</h1>
         <div className="col">
           <input
             className="stat"
@@ -45,6 +46,9 @@ export default function Login() {
           <button className="btn-icon" style={{ width: '100%', padding: 10, border: '1px solid #1f2937', borderRadius: 10 }} type="submit">
             Zaloguj
           </button>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <a href="/register" style={{ color: '#4c5a70ff' }}>Nie masz konta? Zarejestruj się</a>
+          </div>
         </div>
       </form>
     </div>
