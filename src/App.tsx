@@ -6,6 +6,9 @@ import News from '@/pages/News'
 import Markets from '@/pages/Markets'
 import Docs from '@/pages/Docs'
 import Login from '@/pages/Login'
+// import { ImportIcon } from 'lucidereact' 
+
+
 
 function Protected({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth()
@@ -16,7 +19,7 @@ function Protected({ children }: { children: JSX.Element }) {
 
 export default function App() {
   return (
-    <Routes>
+   <Routes> 
       <Route path="/login" element={<Login />} />
 
       <Route
@@ -38,3 +41,22 @@ export default function App() {
     </Routes>
   )
 }
+
+
+// return (
+//   <div className="layout">
+//     <Sidebar />
+//     <div className="main">
+//       <Topbar />
+//       <div className="content">
+//         <Routes>
+//           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+//           <Route path="/dashboard" element={<Dashboard />} />
+//           <Route path="/news" element={<News />} />
+//           <Route path="/markets" element={<Markets />} />
+//           <Route path="/docs" element={<Docs />} />
+//         </Routes>
+//       </div>
+//     </div>
+//   </div>
+// )    
