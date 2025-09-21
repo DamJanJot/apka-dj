@@ -33,19 +33,6 @@ const WeatherWidget: React.FC<WeatherWidgetProps> = ({ city, apiKey }) => {
         </div>
       </div>
 
-      {/* <div className="mt-4">
-        {icon ? (
-          <img
-            src={`https://openweathermap.org/img/wn/${icon}@2x.png`}
-            alt="weather icon"
-            className="h-10 w-10"
-          />
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2a10 10 0 000 20 10 10 0 000-20zM9 12a3 3 0 116 0 3 3 0 01-6 0z" />
-          </svg>
-        )}
-      </div> */}
     </div>
   );
 };

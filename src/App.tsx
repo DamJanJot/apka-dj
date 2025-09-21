@@ -6,9 +6,11 @@ import News from '@/pages/News'
 import Markets from '@/pages/Markets'
 import Docs from '@/pages/Docs'
 import Login from '@/pages/Login'
-// import { ImportIcon } from 'lucidereact' 
+import Profile from "@/pages/Profile";
+import EditProfile from "@/pages/EditProfile";
+import Settings from "@/pages/Settings";
 
-
+// komponent chroniący dostęp do podstron wymagających zalogowania
 
 function Protected({ children }: { children: JSX.Element }) {
   const { user, loading } = useAuth()
@@ -20,6 +22,7 @@ function Protected({ children }: { children: JSX.Element }) {
 export default function App() {
   return (
    <Routes> 
+    
       <Route path="/login" element={<Login />} />
 
       <Route
@@ -30,6 +33,12 @@ export default function App() {
           </Protected>
         }
       >
+
+        <Route index element={<Dashboard />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="profile/edit" element={<EditProfile />} />
+        <Route path="settings" element={<Settings />} />
+
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="news" element={<News />} />
@@ -43,20 +52,3 @@ export default function App() {
 }
 
 
-// return (
-//   <div className="layout">
-//     <Sidebar />
-//     <div className="main">
-//       <Topbar />
-//       <div className="content">
-//         <Routes>
-//           <Route path="/" element={<Navigate to="/dashboard" replace />} />
-//           <Route path="/dashboard" element={<Dashboard />} />
-//           <Route path="/news" element={<News />} />
-//           <Route path="/markets" element={<Markets />} />
-//           <Route path="/docs" element={<Docs />} />
-//         </Routes>
-//       </div>
-//     </div>
-//   </div>
-// )    

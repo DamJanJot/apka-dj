@@ -2,6 +2,15 @@
 
 return [
 
+
+    'providers' => [
+    'users' => [
+        'driver' => 'eloquent',
+        'model' => App\Models\Uzytkownik::class,
+    ],
+],
+
+
     'defaults' => [
         'guard' => 'web',
         'passwords' => 'users',

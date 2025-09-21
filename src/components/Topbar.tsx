@@ -13,6 +13,12 @@ const TITLE: Record<string, string> = {
   '/docs': 'Documentation',
 }
 
+interface User {
+  imie: string
+  email: string
+  zdjecie_profilowe: string | null
+}
+
 export default function Topbar() {
   const loc = useLocation()
   const title = TITLE[loc.pathname] ?? 'Orbi'
@@ -23,6 +29,9 @@ export default function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const wrapRef = useRef<HTMLDivElement | null>(null)
+
+  // 👤 dane użytkownika
+  const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     const mq = window.matchMedia(MQ_MOBILE)
@@ -43,6 +52,14 @@ export default function Topbar() {
     return () => document.removeEventListener('mousedown', onDoc)
   }, [])
 
+  // pobranie danych z backendu
+  useEffect(() => {
+    fetch("http://localhost:8000/api/me", { credentials: "include" })
+      .then(res => res.json())
+      .then(data => setUser(data))
+      .catch(() => setUser(null))
+  }, [])
+
   const toggleSidebar = () => {
     const el = document.getElementById('sidebar')
     if (!el) return
@@ -59,13 +76,10 @@ export default function Topbar() {
     ? (mobileOpen ? <ChevronLeft size={18}/> : <ChevronRight size={18}/>)
     : (collapsed ? <ChevronRight size={18}/> : <ChevronLeft size={18}/>)
 
-  // Strzałka: gdy mobile + sidebar otwarty -> zawsze po prawej krawędzi sidebara
   const arrowStyle = (isMobile && mobileOpen)
     ? { position: 'fixed' as const, left: 'calc(var(--sidebar-w) + 8px)', top: 10, zIndex: 1201 }
     : undefined
 
-  // Gdy mobile + sidebar otwarty -> przesuń całą zawartość topbara w prawo,
-  // więc tytuł pozostaje na środku WIDOCZNEJ części, nie wchodzi pod sidebar.
   const headerStyle = (isMobile && mobileOpen)
     ? { paddingLeft: 'calc(var(--sidebar-w))' }
     : undefined
@@ -74,7 +88,6 @@ export default function Topbar() {
     <>
       {isMobile && mobileOpen && <div className="scrim show" onClick={toggleSidebar} />}
 
-      {/* GRID: [lewo][środek][prawo] */}
       <header className="topbar grid3" style={headerStyle}>
         <div className="tb-left">
           <button className="btn-icon" aria-label="Toggle sidebar" onClick={toggleSidebar} title="Pokaż/ukryj nawigację" style={arrowStyle}>
@@ -101,15 +114,35 @@ export default function Topbar() {
 
           <div className="avatar-wrap">
             <button className="avatar" onClick={() => { setMenuOpen(v => !v); setNotifOpen(false) }}>
-              <img src="/logo_orbitum_bezbg.png" alt="U" />
+              <img
+                src={user?.zdjecie_profilowe ? `http://localhost:8000/${user.zdjecie_profilowe}` : "/default-avatar.png"}
+                alt="U"
+              />
             </button>
             {menuOpen && (
               <div className="dropdown">
                 <UserMenuContent
-                  user={{ name: 'Damian', email: 'damian@example.com' }}
-                  onLogout={() => setMenuOpen(false)}
+                  user={{
+                    name: user?.imie ?? 'Użytkownik',
+                    email: user?.email ?? '—',
+                    avatarUrl: user?.zdjecie_profilowe
+                      ? `http://localhost:8000/${user.zdjecie_profilowe}`
+                      : '/default-avatar.png',
+                  }}
+                  onLogout={() => {
+                    // wylogowanie
+                    fetch("http://localhost:8000/api/logout", {
+                      method: "POST",
+                      credentials: "include",
+                    }).finally(() => {
+                      localStorage.removeItem("token"); // jeśli używasz JWT
+                      window.location.href = "/login";
+                    })
+                    setMenuOpen(false)
+                  }}
                   onClose={() => setMenuOpen(false)}
                 />
+                
               </div>
             )}
           </div>

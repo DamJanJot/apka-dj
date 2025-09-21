@@ -10,6 +10,26 @@ use App\Models\Rate;
 use App\Models\Crypto;
 use App\Models\GoldPrice;
 
+
+
+
+Route::middleware('auth:sanctum')->put('/profile/update', function (Request $request) {
+    $user = $request->user();
+    $user->update([
+        'imie' => $request->imie,
+        'email' => $request->email,
+        'zdjecie_profilowe' => $request->zdjecie_profilowe,
+    ]);
+    return response()->json(['success' => true, 'user' => $user]);
+});
+
+
+
+
+
+
+
+
 // ---------- AUTH (SPA cookie) ----------
 
 Route::post('/login', function (Request $request) {
