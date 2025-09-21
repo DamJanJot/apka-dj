@@ -1,7 +1,3 @@
-# 🧩 DJ Dashboard (React + Vite + TypeScript)
-
-A lightweight dashboard template with a **sidebar navigation** and a **dashboard view** (tiles + charts).  
-Built with **React, Vite, and TypeScript**, designed for quick prototyping and easy API integration.
 
 ---
 
