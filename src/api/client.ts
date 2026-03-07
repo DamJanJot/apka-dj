@@ -32,6 +32,38 @@ export type Me = {
   avatar?: string | null
 }
 
+export type ChatUser = {
+  id: number
+  imie?: string
+  email?: string
+  zdjecie_profilowe?: string | null
+  is_online?: boolean | null
+  last_seen_at?: string | null
+}
+
+export type ChatMessage = {
+  id: number
+  from_user_id: number
+  to_user_id: number
+  body: string
+  read_at?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ChatNotificationItem = {
+  from_user_id: number
+  latest_at: string
+  unread_count: number
+  sender_name?: string | null
+  sender_email?: string | null
+}
+
+export type ChatNotifications = {
+  unread_count: number
+  items: ChatNotificationItem[]
+}
+
 export async function getMe(): Promise<Me> {
   const r = await api.get('/api/me')
   return r.data
@@ -59,4 +91,36 @@ export async function register(payload: {
 
 export async function logout() {
   await api.post('/api/logout')
+}
+
+export async function listChatUsers(): Promise<ChatUser[]> {
+  const r = await api.get('/api/chat/users')
+  return r.data
+}
+
+export async function getChatThread(userId: number): Promise<ChatMessage[]> {
+  const r = await api.get(`/api/chat/thread/${userId}`)
+  return r.data
+}
+
+export async function sendChatMessage(toUserId: number, body: string): Promise<ChatMessage> {
+  const r = await api.post('/api/chat/send', { to_user_id: toUserId, body })
+  return r.data
+}
+
+export async function getChatNotifications(): Promise<ChatNotifications> {
+  const r = await api.get('/api/chat/notifications')
+  return r.data
+}
+
+export async function markChatNotificationsReadFromUser(fromUserId: number): Promise<void> {
+  await api.post(`/api/chat/notifications/${fromUserId}/read`)
+}
+
+export async function pingChatActivity(): Promise<void> {
+  await api.post('/api/chat/activity/ping')
+}
+
+export async function setChatOffline(): Promise<void> {
+  await api.post('/api/chat/activity/offline')
 }

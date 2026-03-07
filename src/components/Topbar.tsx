@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Bell } from 'lucide-react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import {
+  ChatNotificationItem,
+  getChatNotifications,
+  logout,
+  markChatNotificationsReadFromUser,
+  pingChatActivity,
+  setChatOffline,
+} from '@/api/client'
 import UserMenuContent from './user-menu-content'
 
 const MQ_MOBILE = '(max-width: 900px)'
@@ -10,6 +18,9 @@ const TITLE: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/news': 'Aktualności',
   '/markets': 'Rynki',
+  '/messages': 'Wiadomosci',
+  '/profile': 'Profil',
+  '/profile/edit': 'Edytuj profil',
   '/docs': 'Documentation',
 }
 
@@ -21,6 +32,7 @@ interface User {
 
 export default function Topbar() {
   const loc = useLocation()
+  const nav = useNavigate()
   const title = TITLE[loc.pathname] ?? 'Orbitum'
 
   const [isMobile, setIsMobile] = useState(window.matchMedia(MQ_MOBILE).matches)
@@ -28,6 +40,8 @@ export default function Topbar() {
   const [mobileOpen, setMobileOpen] = useState(!!document.getElementById('sidebar')?.classList.contains('open'))
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [notifItems, setNotifItems] = useState<ChatNotificationItem[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
   const wrapRef = useRef<HTMLDivElement | null>(null)
 
   // 👤 dane użytkownika
@@ -54,11 +68,60 @@ export default function Topbar() {
 
   // pobranie danych z backendu
   useEffect(() => {
-    fetch("http://localhost:8000/api/me", { credentials: "include" })
+    fetch('http://localhost:8000/api/me', { credentials: 'include' })
       .then(res => res.json())
       .then(data => setUser(data))
       .catch(() => setUser(null))
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    const load = async () => {
+      try {
+        const data = await getChatNotifications()
+        if (!mounted) return
+        setUnreadCount(data.unread_count || 0)
+        setNotifItems(data.items || [])
+      } catch {
+        if (!mounted) return
+        setUnreadCount(0)
+        setNotifItems([])
+      }
+    }
+
+    load()
+    const id = window.setInterval(load, 8000)
+
+    return () => {
+      mounted = false
+      window.clearInterval(id)
+    }
+  }, [])
+
+  useEffect(() => {
+    const ping = () => {
+      pingChatActivity().catch(() => {})
+    }
+
+    ping()
+    const id = window.setInterval(ping, 30000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const openThreadFromNotification = async (fromUserId: number) => {
+    try {
+      await markChatNotificationsReadFromUser(fromUserId)
+      const data = await getChatNotifications()
+      setUnreadCount(data.unread_count || 0)
+      setNotifItems(data.items || [])
+    } catch {
+      // noop
+    }
+
+    setNotifOpen(false)
+    nav(`/messages?user=${fromUserId}`)
+  }
 
   const toggleSidebar = () => {
     const el = document.getElementById('sidebar')
@@ -98,8 +161,9 @@ export default function Topbar() {
         <div className="tb-center">{title}</div>
 
         <div className="tb-right" ref={wrapRef}>
-          <button className="btn-icon" aria-label="Powiadomienia" onClick={() => { setNotifOpen(v => !v); setMenuOpen(false) }}>
+          <button className="btn-icon bell-btn" aria-label="Powiadomienia" onClick={() => { setNotifOpen(v => !v); setMenuOpen(false) }}>
             <Bell size={18}/>
+            {unreadCount > 0 && <span className="bell-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>}
           </button>
 
           {notifOpen && (
@@ -107,7 +171,19 @@ export default function Topbar() {
               <div className="dropdown-menu">
                 <div className="dropdown-header"><strong>Powiadomienia</strong></div>
                 <div className="dropdown-sep" />
-                <div className="muted small" style={{ padding: '8px 12px' }}>Brak nowych powiadomień</div>
+                {notifItems.length === 0 && (
+                  <div className="muted small" style={{ padding: '8px 12px' }}>Brak nowych powiadomien</div>
+                )}
+                {notifItems.map((n) => (
+                  <button
+                    key={n.from_user_id}
+                    className="dropdown-item"
+                    onClick={() => openThreadFromNotification(Number(n.from_user_id))}
+                  >
+                    <div><strong>{n.sender_name || n.sender_email || `Uzytkownik #${n.from_user_id}`}</strong></div>
+                    <div className="small muted">Nowe wiadomosci: {n.unread_count}</div>
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -123,22 +199,25 @@ export default function Topbar() {
               <div className="dropdown">
                 <UserMenuContent
                   user={{
-                    name: user?.imie ?? 'Użytkownik',
+                    name: user?.imie ?? 'Uzytkownik',
                     email: user?.email ?? '—',
                     avatarUrl: user?.zdjecie_profilowe
                       ? `http://localhost:8000/${user.zdjecie_profilowe}`
                       : "/dj-api/public/uploads/default.png"
 
                   }}
-                  onLogout={() => {
-                    // wylogowanie
-                    fetch("http://localhost:8000/api/logout", {
-                      method: "POST",
-                      credentials: "include",
-                    }).finally(() => {
-                      localStorage.removeItem("token"); // jeśli używasz JWT
-                      window.location.href = "/login";
+                  onLogout={async () => {
+                    try {
+                      await setChatOffline()
+                    } catch {
+                      // noop
+                    }
+
+                    await logout().finally(() => {
+                      localStorage.removeItem('token')
+                      window.location.href = '/login'
                     })
+
                     setMenuOpen(false)
                   }}
                   onClose={() => setMenuOpen(false)}

@@ -4,6 +4,7 @@ import Layout from '@/layout/Layout'
 import Dashboard from '@/pages/Dashboard'
 import News from '@/pages/News'
 import Markets from '@/pages/Markets'
+import Messages from '@/pages/Messages'
 import Docs from '@/pages/Docs'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="news" element={<News />} />
         <Route path="markets" element={<Markets />} />
+        <Route path="messages" element={<Messages />} />
         <Route path="docs" element={<Docs />} />
       </Route>
 

@@ -5,8 +5,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+use App\Http\Controllers\OrbitumChatController;
 use App\Models\LegacyUser;
 use App\Models\News;
+use App\Models\OrbitumUserActivityStatus;
 use App\Models\Rate;
 use App\Models\Crypto;
 use App\Models\GoldPrice;
@@ -51,6 +53,11 @@ Route::post('/register', function (Request $request) {
     Auth::login($user);
     $request->session()->regenerate();
 
+    OrbitumUserActivityStatus::query()->updateOrCreate(
+        ['user_id' => (int) Auth::id()],
+        ['is_online' => true, 'last_seen_at' => now()]
+    );
+
     return response()->json(['ok' => true], 201);
 });
 
@@ -63,6 +70,12 @@ Route::post('/login', function (Request $request) {
     // 1) standard (bcrypt) – działa dzięki getAuthPassword() w LegacyUser
     if (Auth::attempt(['email' => $data['email'], 'password' => $data['password']])) {
         $request->session()->regenerate();
+
+        OrbitumUserActivityStatus::query()->updateOrCreate(
+            ['user_id' => (int) Auth::id()],
+            ['is_online' => true, 'last_seen_at' => now()]
+        );
+
         return response()->json(['ok' => true]);
     }
 
@@ -79,6 +92,12 @@ Route::post('/login', function (Request $request) {
 
             Auth::login($u);
             $request->session()->regenerate();
+
+            OrbitumUserActivityStatus::query()->updateOrCreate(
+                ['user_id' => (int) Auth::id()],
+                ['is_online' => true, 'last_seen_at' => now()]
+            );
+
             return response()->json(['ok' => true, 'upgraded' => true]);
         }
     }
@@ -87,6 +106,14 @@ Route::post('/login', function (Request $request) {
 });
 
 Route::post('/logout', function (Request $request) {
+    $id = (int) optional($request->user())->id;
+    if ($id > 0) {
+        OrbitumUserActivityStatus::query()->updateOrCreate(
+            ['user_id' => $id],
+            ['is_online' => false, 'last_seen_at' => now()]
+        );
+    }
+
     Auth::guard('web')->logout();
     $request->session()->invalidate();
     $request->session()->regenerateToken();
@@ -114,3 +141,16 @@ Route::get('/news', fn() => News::orderByDesc('id')->limit(30)->get());
 Route::get('/rates', fn() => Rate::orderBy('id')->get());
 Route::get('/crypto', fn() => Crypto::orderBy('id')->get());
 Route::get('/gold', fn() => GoldPrice::orderBy('id')->get());
+
+// ---------- CZAT / POWIADOMIENIA / AKTYWNOSC ----------
+Route::middleware('auth:sanctum')->prefix('chat')->group(function () {
+    Route::get('/users', [OrbitumChatController::class, 'users']);
+    Route::get('/thread/{userId}', [OrbitumChatController::class, 'thread']);
+    Route::post('/send', [OrbitumChatController::class, 'send']);
+
+    Route::get('/notifications', [OrbitumChatController::class, 'notifications']);
+    Route::post('/notifications/{fromUserId}/read', [OrbitumChatController::class, 'markReadFromUser']);
+
+    Route::post('/activity/ping', [OrbitumChatController::class, 'pingActivity']);
+    Route::post('/activity/offline', [OrbitumChatController::class, 'setOffline']);
+});
