@@ -7,6 +7,7 @@ use App\Models\OrbitumChatMessage;
 use App\Models\OrbitumUserActivityStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class OrbitumChatController extends Controller
 {
@@ -21,6 +22,7 @@ class OrbitumChatController extends Controller
             ->select([
                 'u.id',
                 'u.imie',
+                'u.nazwisko',
                 'u.email',
                 'u.zdjecie_profilowe',
                 's.is_online',
@@ -65,17 +67,39 @@ class OrbitumChatController extends Controller
 
         $data = $request->validate([
             'to_user_id' => ['required', 'integer', 'exists:uzytkownicy,id'],
-            'body' => ['required', 'string', 'max:4000'],
+            'body' => ['nullable', 'string', 'max:4000', 'required_without:image'],
+            'image' => ['nullable', 'image', 'max:5120', 'required_without:body'],
         ]);
 
         if ((int) $data['to_user_id'] === $me) {
             return response()->json(['message' => 'Nie mozesz wyslac wiadomosci do siebie.'], 422);
         }
 
+        $body = trim((string) ($data['body'] ?? ''));
+        $receiver = LegacyUser::query()->findOrFail((int) $data['to_user_id']);
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $file = $request->file('image');
+            $dir = public_path('uploads/chat');
+
+            if (!is_dir($dir)) {
+                mkdir($dir, 0755, true);
+            }
+
+            $filename = Str::uuid()->toString() . '.' . $file->getClientOriginalExtension();
+            $file->move($dir, $filename);
+            $imagePath = 'uploads/chat/' . $filename;
+        }
+
+        $isMention = $this->containsMentionForReceiver($body, $receiver);
+
         $message = OrbitumChatMessage::query()->create([
             'from_user_id' => $me,
             'to_user_id' => (int) $data['to_user_id'],
-            'body' => trim($data['body']),
+            'body' => $body,
+            'image_path' => $imagePath,
+            'is_mention' => $isMention,
         ]);
 
         return response()->json($message, 201);
@@ -94,6 +118,7 @@ class OrbitumChatController extends Controller
                 'm.from_user_id',
                 DB::raw('MAX(m.created_at) as latest_at'),
                 DB::raw('COUNT(*) as unread_count'),
+                DB::raw('SUM(CASE WHEN m.is_mention = 1 THEN 1 ELSE 0 END) as mention_count'),
                 'u.imie as sender_name',
                 'u.email as sender_email',
             ])
@@ -148,5 +173,35 @@ class OrbitumChatController extends Controller
         );
 
         return response()->json(['ok' => true]);
+    }
+
+    private function containsMentionForReceiver(string $body, LegacyUser $receiver): bool
+    {
+        if ($body === '') {
+            return false;
+        }
+
+        $tokens = array_filter([
+            $receiver->nick ?? null,
+            $receiver->imie ?? null,
+            Str::before((string) ($receiver->email ?? ''), '@'),
+        ]);
+
+        if (empty($tokens)) {
+            return false;
+        }
+
+        foreach ($tokens as $token) {
+            $clean = preg_quote(mb_strtolower(trim((string) $token)), '/');
+            if ($clean === '') {
+                continue;
+            }
+
+            if (preg_match('/(^|\s)@' . $clean . '(\b|\s|[.!?,:;])/iu', mb_strtolower($body))) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

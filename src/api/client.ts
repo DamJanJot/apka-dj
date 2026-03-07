@@ -35,6 +35,7 @@ export type Me = {
 export type ChatUser = {
   id: number
   imie?: string
+  nazwisko?: string
   email?: string
   zdjecie_profilowe?: string | null
   is_online?: boolean | null
@@ -46,6 +47,8 @@ export type ChatMessage = {
   from_user_id: number
   to_user_id: number
   body: string
+  image_path?: string | null
+  is_mention?: boolean
   read_at?: string | null
   created_at: string
   updated_at: string
@@ -55,6 +58,7 @@ export type ChatNotificationItem = {
   from_user_id: number
   latest_at: string
   unread_count: number
+  mention_count?: number
   sender_name?: string | null
   sender_email?: string | null
 }
@@ -105,6 +109,20 @@ export async function getChatThread(userId: number): Promise<ChatMessage[]> {
 
 export async function sendChatMessage(toUserId: number, body: string): Promise<ChatMessage> {
   const r = await api.post('/api/chat/send', { to_user_id: toUserId, body })
+  return r.data
+}
+
+export async function sendChatMessageWithImage(toUserId: number, body: string, file: File): Promise<ChatMessage> {
+  const form = new FormData()
+  form.append('to_user_id', String(toUserId))
+  form.append('body', body)
+  form.append('image', file)
+
+  const r = await api.post('/api/chat/send', form, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
   return r.data
 }
 

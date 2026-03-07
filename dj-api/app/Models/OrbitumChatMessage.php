@@ -12,10 +12,13 @@ class OrbitumChatMessage extends Model
         'from_user_id',
         'to_user_id',
         'body',
+        'image_path',
+        'is_mention',
         'read_at',
     ];
 
     protected $casts = [
+        'is_mention' => 'boolean',
         'read_at' => 'datetime',
     ];
 }

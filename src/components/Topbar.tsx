@@ -182,6 +182,9 @@ export default function Topbar() {
                   >
                     <div><strong>{n.sender_name || n.sender_email || `Uzytkownik #${n.from_user_id}`}</strong></div>
                     <div className="small muted">Nowe wiadomosci: {n.unread_count}</div>
+                    {Number(n.mention_count || 0) > 0 && (
+                      <div className="small" style={{ color: '#7dd3fc' }}>Wzmianki: {n.mention_count}</div>
+                    )}
                   </button>
                 ))}
               </div>
