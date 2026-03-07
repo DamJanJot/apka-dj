@@ -3,8 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrbitumFriendship;
+use App\Models\OrbitumPostComment;
+use App\Models\OrbitumPostMention;
 use App\Models\OrbitumPost;
 use App\Models\OrbitumPostAudience;
+use App\Models\OrbitumPostReaction;
+use App\Models\LegacyUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -62,6 +66,37 @@ class OrbitumPostsController extends Controller
             ->orderByDesc('p.created_at')
             ->limit(100)
             ->get();
+
+        $postIds = $posts->pluck('id')->map(fn($v) => (int) $v)->all();
+        $commentsByPost = empty($postIds)
+            ? collect()
+            : OrbitumPostComment::query()
+                ->select(['post_id', DB::raw('COUNT(*) as cnt')])
+                ->whereIn('post_id', $postIds)
+                ->groupBy('post_id')
+                ->pluck('cnt', 'post_id');
+
+        $reactionsByPost = empty($postIds)
+            ? collect()
+            : OrbitumPostReaction::query()
+                ->select(['post_id', DB::raw('COUNT(*) as cnt')])
+                ->whereIn('post_id', $postIds)
+                ->groupBy('post_id')
+                ->pluck('cnt', 'post_id');
+
+        $myReactions = empty($postIds)
+            ? collect()
+            : OrbitumPostReaction::query()
+                ->whereIn('post_id', $postIds)
+                ->where('user_id', $me)
+                ->pluck('emoji', 'post_id');
+
+        foreach ($posts as $post) {
+            $pid = (int) $post->id;
+            $post->comments_count = (int) ($commentsByPost[$pid] ?? 0);
+            $post->reactions_count = (int) ($reactionsByPost[$pid] ?? 0);
+            $post->my_reaction = $myReactions[$pid] ?? null;
+        }
 
         return response()->json($posts);
     }
@@ -121,6 +156,14 @@ class OrbitumPostsController extends Controller
                 }
             }
 
+            $this->createMentionsForPost(
+                (int) $created->id,
+                $me,
+                (string) ($created->body ?? ''),
+                $visibility,
+                $selectedIds
+            );
+
             return $created;
         });
 
@@ -140,6 +183,218 @@ class OrbitumPostsController extends Controller
             ->get();
 
         return response()->json($users);
+    }
+
+    public function comments(Request $request, int $postId)
+    {
+        $me = (int) $request->user()->id;
+        $post = OrbitumPost::query()->findOrFail($postId);
+
+        if (!$this->canUserSeePost($post, $me)) {
+            return response()->json(['message' => 'Nie masz dostepu do komentarzy tego posta.'], 403);
+        }
+
+        $items = OrbitumPostComment::query()
+            ->from('orbitum_post_comments as c')
+            ->join('uzytkownicy as u', 'u.id', '=', 'c.user_id')
+            ->where('c.post_id', $postId)
+            ->select([
+                'c.id',
+                'c.post_id',
+                'c.user_id',
+                'c.body',
+                'c.created_at',
+                'u.imie',
+                'u.nazwisko',
+                'u.email',
+                'u.zdjecie_profilowe',
+            ])
+            ->orderBy('c.created_at')
+            ->limit(300)
+            ->get();
+
+        return response()->json($items);
+    }
+
+    public function addComment(Request $request, int $postId)
+    {
+        $me = (int) $request->user()->id;
+        $post = OrbitumPost::query()->findOrFail($postId);
+
+        if (!$this->canUserSeePost($post, $me)) {
+            return response()->json(['message' => 'Nie masz dostepu do komentarzy tego posta.'], 403);
+        }
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $comment = OrbitumPostComment::query()->create([
+            'post_id' => $postId,
+            'user_id' => $me,
+            'body' => trim((string) $data['body']),
+        ]);
+
+        return response()->json($comment, 201);
+    }
+
+    public function setReaction(Request $request, int $postId)
+    {
+        $me = (int) $request->user()->id;
+        $post = OrbitumPost::query()->findOrFail($postId);
+
+        if (!$this->canUserSeePost($post, $me)) {
+            return response()->json(['message' => 'Nie masz dostepu do reakcji tego posta.'], 403);
+        }
+
+        $data = $request->validate([
+            'emoji' => ['nullable', 'string', 'max:32'],
+        ]);
+
+        $emoji = trim((string) ($data['emoji'] ?? ''));
+
+        if ($emoji === '') {
+            OrbitumPostReaction::query()
+                ->where('post_id', $postId)
+                ->where('user_id', $me)
+                ->delete();
+
+            return response()->json(['ok' => true, 'emoji' => null]);
+        }
+
+        OrbitumPostReaction::query()->updateOrCreate(
+            ['post_id' => $postId, 'user_id' => $me],
+            ['emoji' => $emoji]
+        );
+
+        return response()->json(['ok' => true, 'emoji' => $emoji]);
+    }
+
+    public function mentionNotifications(Request $request)
+    {
+        $me = (int) $request->user()->id;
+
+        $items = OrbitumPostMention::query()
+            ->from('orbitum_post_mentions as m')
+            ->join('orbitum_posts as p', 'p.id', '=', 'm.post_id')
+            ->join('uzytkownicy as u', 'u.id', '=', 'm.mentioned_by_user_id')
+            ->where('m.mentioned_user_id', $me)
+            ->whereNull('m.read_at')
+            ->select([
+                'm.id',
+                'm.post_id',
+                'm.token',
+                'm.created_at',
+                'u.imie as by_imie',
+                'u.nazwisko as by_nazwisko',
+                'u.email as by_email',
+                'p.body as post_body',
+            ])
+            ->orderByDesc('m.created_at')
+            ->limit(20)
+            ->get();
+
+        return response()->json([
+            'unread_count' => (int) $items->count(),
+            'items' => $items,
+        ]);
+    }
+
+    public function markMentionsRead(Request $request)
+    {
+        $me = (int) $request->user()->id;
+
+        OrbitumPostMention::query()
+            ->where('mentioned_user_id', $me)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json(['ok' => true]);
+    }
+
+    private function createMentionsForPost(int $postId, int $authorId, string $body, string $visibility, $selectedIds): void
+    {
+        if ($body === '') {
+            return;
+        }
+
+        preg_match_all('/@([\pL\pN._-]+)/u', $body, $matches);
+        $tokens = collect($matches[1] ?? [])
+            ->map(fn($t) => mb_strtolower(trim((string) $t)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        foreach ($tokens as $token) {
+            $target = LegacyUser::query()
+                ->from('uzytkownicy as u')
+                ->whereRaw('LOWER(COALESCE(u.nick, "")) = ?', [$token])
+                ->orWhereRaw('LOWER(COALESCE(u.imie, "")) = ?', [$token])
+                ->orWhereRaw('LOWER(SUBSTRING_INDEX(COALESCE(u.email, ""), "@", 1)) = ?', [$token])
+                ->select(['u.id'])
+                ->first();
+
+            if (!$target) {
+                continue;
+            }
+
+            $targetId = (int) $target->id;
+            if ($targetId === $authorId) {
+                continue;
+            }
+
+            if (!$this->canUserSeePostByVisibility($authorId, $visibility, $targetId, collect($selectedIds))) {
+                continue;
+            }
+
+            OrbitumPostMention::query()->firstOrCreate([
+                'post_id' => $postId,
+                'mentioned_user_id' => $targetId,
+            ], [
+                'mentioned_by_user_id' => $authorId,
+                'token' => $token,
+                'read_at' => null,
+            ]);
+        }
+    }
+
+    private function canUserSeePost(OrbitumPost $post, int $viewerId): bool
+    {
+        $selectedIds = OrbitumPostAudience::query()
+            ->where('post_id', (int) $post->id)
+            ->pluck('user_id')
+            ->map(fn($v) => (int) $v);
+
+        return $this->canUserSeePostByVisibility((int) $post->author_user_id, (string) $post->visibility, $viewerId, $selectedIds);
+    }
+
+    private function canUserSeePostByVisibility(int $authorId, string $visibility, int $viewerId, $selectedIds): bool
+    {
+        if ($authorId === $viewerId) {
+            return true;
+        }
+
+        if ($visibility === 'public') {
+            return true;
+        }
+
+        if ($visibility === 'friends') {
+            [$one, $two] = $authorId < $viewerId ? [$authorId, $viewerId] : [$viewerId, $authorId];
+            return OrbitumFriendship::query()
+                ->where('user_one_id', $one)
+                ->where('user_two_id', $two)
+                ->exists();
+        }
+
+        if ($visibility === 'selected') {
+            return collect($selectedIds)->map(fn($v) => (int) $v)->contains($viewerId);
+        }
+
+        return false;
     }
 
     private function friendIdsOf(int $me)

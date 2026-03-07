@@ -1,14 +1,19 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import {
+  addBoardComment,
+  BoardComment,
   BoardPost,
   createBoardPost,
   FriendUser,
+  getBoardComments,
   getBoardFeed,
   getPostAudienceFriends,
   PostVisibility,
+  setBoardReaction,
 } from '@/api/client'
 
 const DEFAULT_AVATAR = '/dj-api/public/uploads/default.png'
+const REACTIONS = ['👍', '❤️', '🔥', '😂', '😮']
 
 function fullName(u?: { imie?: string | null; nazwisko?: string | null; email?: string | null }) {
   const value = `${u?.imie || ''} ${u?.nazwisko || ''}`.trim()
@@ -27,6 +32,33 @@ function visibilityLabel(v: PostVisibility) {
   return 'Dla wybranych'
 }
 
+function renderRichText(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/gi)
+
+  return parts.map((part, idx) => {
+    if (/^https?:\/\//i.test(part)) {
+      return (
+        <a key={`lnk-${idx}`} href={part} target="_blank" rel="noreferrer noopener" className="chat-link">
+          {part}
+        </a>
+      )
+    }
+
+    const mentionParts = part.split(/(@[^\s@]+)/g)
+    return mentionParts.map((chunk, mentionIdx) => {
+      if (/^@[^\s@]+$/.test(chunk)) {
+        return (
+          <span key={`m-${idx}-${mentionIdx}`} className="chat-mention">
+            {chunk}
+          </span>
+        )
+      }
+
+      return <span key={`t-${idx}-${mentionIdx}`}>{chunk}</span>
+    })
+  })
+}
+
 export default function Board() {
   const [feed, setFeed] = useState<BoardPost[]>([])
   const [friends, setFriends] = useState<FriendUser[]>([])
@@ -35,6 +67,12 @@ export default function Board() {
   const [body, setBody] = useState('')
   const [image, setImage] = useState<File | null>(null)
   const [selectedAudience, setSelectedAudience] = useState<number[]>([])
+
+  const [openComments, setOpenComments] = useState<Record<number, boolean>>({})
+  const [commentsByPost, setCommentsByPost] = useState<Record<number, BoardComment[]>>({})
+  const [commentDraftByPost, setCommentDraftByPost] = useState<Record<number, string>>({})
+  const [busyCommentPostId, setBusyCommentPostId] = useState<number | null>(null)
+  const [busyReactionPostId, setBusyReactionPostId] = useState<number | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -74,6 +112,53 @@ export default function Board() {
   const refreshFeed = async () => {
     const data = await getBoardFeed()
     setFeed(data)
+  }
+
+  const toggleComments = async (postId: number) => {
+    const isOpen = !!openComments[postId]
+    setOpenComments((prev) => ({ ...prev, [postId]: !isOpen }))
+
+    if (isOpen || commentsByPost[postId]) {
+      return
+    }
+
+    try {
+      const items = await getBoardComments(postId)
+      setCommentsByPost((prev) => ({ ...prev, [postId]: items }))
+    } catch {
+      setMessage('Nie udalo sie pobrac komentarzy.')
+    }
+  }
+
+  const onReaction = async (post: BoardPost, emoji: string) => {
+    setBusyReactionPostId(Number(post.id))
+    try {
+      const next = post.my_reaction === emoji ? null : emoji
+      await setBoardReaction(Number(post.id), next)
+      await refreshFeed()
+    } catch {
+      setMessage('Nie udalo sie zapisac reakcji.')
+    } finally {
+      setBusyReactionPostId(null)
+    }
+  }
+
+  const onCommentSubmit = async (postId: number) => {
+    const text = (commentDraftByPost[postId] || '').trim()
+    if (!text) return
+
+    setBusyCommentPostId(postId)
+    try {
+      await addBoardComment(postId, text)
+      const items = await getBoardComments(postId)
+      setCommentsByPost((prev) => ({ ...prev, [postId]: items }))
+      setCommentDraftByPost((prev) => ({ ...prev, [postId]: '' }))
+      await refreshFeed()
+    } catch {
+      setMessage('Nie udalo sie dodac komentarza.')
+    } finally {
+      setBusyCommentPostId(null)
+    }
   }
 
   const toggleAudience = (id: number) => {
@@ -208,12 +293,82 @@ export default function Board() {
                   </div>
                 </div>
 
-                {!!post.body && <div className="board-post-body">{post.body}</div>}
+                {!!post.body && <div className="board-post-body">{renderRichText(post.body)}</div>}
 
                 {imageUrl && (
                   <a href={imageUrl} target="_blank" rel="noreferrer noopener" className="chat-image-link">
                     <img className="chat-image" src={imageUrl} alt="Zdjecie posta" />
                   </a>
+                )}
+
+                <div className="board-post-actions">
+                  <div className="board-reactions-row">
+                    {REACTIONS.map((emoji) => (
+                      <button
+                        key={`${post.id}-${emoji}`}
+                        type="button"
+                        className={`board-reaction-btn ${post.my_reaction === emoji ? 'active' : ''}`}
+                        disabled={busyReactionPostId === Number(post.id)}
+                        onClick={() => onReaction(post, emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                    <span className="small muted">Reakcje: {post.reactions_count || 0}</span>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="friend-link-btn"
+                    onClick={() => toggleComments(Number(post.id))}
+                  >
+                    Komentarze ({post.comments_count || 0})
+                  </button>
+                </div>
+
+                {openComments[Number(post.id)] && (
+                  <div className="board-comments-wrap">
+                    <div className="board-comments-list">
+                      {(commentsByPost[Number(post.id)] || []).map((comment) => (
+                        <div key={comment.id} className="board-comment-item">
+                          <img className="friend-avatar" src={assetUrl(comment.zdjecie_profilowe) || DEFAULT_AVATAR} alt="Avatar" />
+                          <div className="board-comment-body">
+                            <div className="board-comment-head">
+                              <strong>{fullName(comment)}</strong>
+                              <span className="small muted">{new Date(comment.created_at).toLocaleString('pl-PL')}</span>
+                            </div>
+                            <div className="board-post-body">{renderRichText(comment.body)}</div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {(commentsByPost[Number(post.id)] || []).length === 0 && (
+                        <div className="small muted">Brak komentarzy.</div>
+                      )}
+                    </div>
+
+                    <div className="board-comment-compose">
+                      <input
+                        className="chat-compose-input"
+                        value={commentDraftByPost[Number(post.id)] || ''}
+                        onChange={(e) =>
+                          setCommentDraftByPost((prev) => ({
+                            ...prev,
+                            [Number(post.id)]: e.target.value,
+                          }))
+                        }
+                        placeholder="Napisz komentarz..."
+                      />
+                      <button
+                        type="button"
+                        className="friend-action-btn"
+                        disabled={busyCommentPostId === Number(post.id)}
+                        onClick={() => onCommentSubmit(Number(post.id))}
+                      >
+                        Dodaj
+                      </button>
+                    </div>
+                  </div>
                 )}
               </article>
             )

@@ -214,4 +214,11 @@ Route::middleware('auth:sanctum')->prefix('posts')->group(function () {
     Route::get('/feed', [OrbitumPostsController::class, 'feed']);
     Route::get('/audience/friends', [OrbitumPostsController::class, 'mySelectableFriends']);
     Route::post('/create', [OrbitumPostsController::class, 'create']);
+
+    Route::get('/{postId}/comments', [OrbitumPostsController::class, 'comments']);
+    Route::post('/{postId}/comments', [OrbitumPostsController::class, 'addComment']);
+    Route::post('/{postId}/reactions', [OrbitumPostsController::class, 'setReaction']);
+
+    Route::get('/notifications/mentions', [OrbitumPostsController::class, 'mentionNotifications']);
+    Route::post('/notifications/mentions/read-all', [OrbitumPostsController::class, 'markMentionsRead']);
 });

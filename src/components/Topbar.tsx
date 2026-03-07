@@ -4,8 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import {
   ChatNotificationItem,
   getChatNotifications,
+  getPostMentionNotifications,
   logout,
+  markPostMentionsReadAll,
   markChatNotificationsReadFromUser,
+  PostMentionNotificationItem,
   pingChatActivity,
   setChatOffline,
 } from '@/api/client'
@@ -45,6 +48,8 @@ export default function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifItems, setNotifItems] = useState<ChatNotificationItem[]>([])
+  const [postMentionItems, setPostMentionItems] = useState<PostMentionNotificationItem[]>([])
+  const [postMentionsCount, setPostMentionsCount] = useState(0)
   const [unreadCount, setUnreadCount] = useState(0)
   const wrapRef = useRef<HTMLDivElement | null>(null)
 
@@ -83,14 +88,22 @@ export default function Topbar() {
 
     const load = async () => {
       try {
-        const data = await getChatNotifications()
+        const [chatData, postData] = await Promise.all([
+          getChatNotifications(),
+          getPostMentionNotifications(),
+        ])
+
         if (!mounted) return
-        setUnreadCount(data.unread_count || 0)
-        setNotifItems(data.items || [])
+        setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0))
+        setNotifItems(chatData.items || [])
+        setPostMentionItems(postData.items || [])
+        setPostMentionsCount(postData.unread_count || 0)
       } catch {
         if (!mounted) return
         setUnreadCount(0)
         setNotifItems([])
+        setPostMentionItems([])
+        setPostMentionsCount(0)
       }
     }
 
@@ -116,15 +129,39 @@ export default function Topbar() {
   const openThreadFromNotification = async (fromUserId: number) => {
     try {
       await markChatNotificationsReadFromUser(fromUserId)
-      const data = await getChatNotifications()
-      setUnreadCount(data.unread_count || 0)
-      setNotifItems(data.items || [])
+      const [chatData, postData] = await Promise.all([
+        getChatNotifications(),
+        getPostMentionNotifications(),
+      ])
+      setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0))
+      setNotifItems(chatData.items || [])
+      setPostMentionItems(postData.items || [])
+      setPostMentionsCount(postData.unread_count || 0)
     } catch {
       // noop
     }
 
     setNotifOpen(false)
     nav(`/messages?user=${fromUserId}`)
+  }
+
+  const openBoardFromMention = async () => {
+    try {
+      await markPostMentionsReadAll()
+      const [chatData, postData] = await Promise.all([
+        getChatNotifications(),
+        getPostMentionNotifications(),
+      ])
+      setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0))
+      setNotifItems(chatData.items || [])
+      setPostMentionItems(postData.items || [])
+      setPostMentionsCount(postData.unread_count || 0)
+    } catch {
+      // noop
+    }
+
+    setNotifOpen(false)
+    nav('/board')
   }
 
   const toggleSidebar = () => {
@@ -175,9 +212,29 @@ export default function Topbar() {
               <div className="dropdown-menu">
                 <div className="dropdown-header"><strong>Powiadomienia</strong></div>
                 <div className="dropdown-sep" />
-                {notifItems.length === 0 && (
+                {postMentionItems.length === 0 && notifItems.length === 0 && (
                   <div className="muted small" style={{ padding: '8px 12px' }}>Brak nowych powiadomien</div>
                 )}
+
+                {postMentionItems.length > 0 && (
+                  <>
+                    <div className="small muted" style={{ padding: '8px 12px' }}>Wzmianki w postach: {postMentionsCount}</div>
+                    {postMentionItems.map((n) => (
+                      <button
+                        key={`post-mention-${n.id}`}
+                        className="dropdown-item"
+                        onClick={openBoardFromMention}
+                      >
+                        <div>
+                          <strong>{n.by_imie || n.by_email || 'Uzytkownik'} wspomnial Cie w poscie</strong>
+                        </div>
+                        <div className="small muted">{(n.post_body || '').slice(0, 80) || '(brak tresci)'}</div>
+                      </button>
+                    ))}
+                    <div className="dropdown-sep" />
+                  </>
+                )}
+
                 {notifItems.map((n) => (
                   <button
                     key={n.from_user_id}

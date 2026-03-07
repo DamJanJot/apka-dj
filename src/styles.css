@@ -1260,6 +1260,77 @@ body.sidebar-collapsed .link-text {
   overflow-wrap: anywhere;
 }
 
+.board-post-actions {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.board-reactions-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.board-reaction-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.board-reaction-btn.active {
+  border-color: rgba(56, 189, 248, 0.65);
+  background: rgba(56, 189, 248, 0.15);
+}
+
+.board-comments-wrap {
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+.board-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.board-comment-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.board-comment-body {
+  flex: 1;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px;
+}
+
+.board-comment-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.board-comment-compose {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
@@ -1357,5 +1428,9 @@ body.sidebar-collapsed .link-text {
   .chat-emoji-picker {
     left: auto;
     right: 0;
+  }
+
+  .board-comment-compose {
+    grid-template-columns: 1fr;
   }
 }

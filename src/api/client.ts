@@ -125,6 +125,37 @@ export type BoardPost = {
   author_nazwisko?: string | null
   author_email?: string | null
   author_avatar?: string | null
+  comments_count?: number
+  reactions_count?: number
+  my_reaction?: string | null
+}
+
+export type BoardComment = {
+  id: number
+  post_id: number
+  user_id: number
+  body: string
+  created_at: string
+  imie?: string | null
+  nazwisko?: string | null
+  email?: string | null
+  zdjecie_profilowe?: string | null
+}
+
+export type PostMentionNotificationItem = {
+  id: number
+  post_id: number
+  token: string
+  created_at: string
+  by_imie?: string | null
+  by_nazwisko?: string | null
+  by_email?: string | null
+  post_body?: string | null
+}
+
+export type PostMentionNotifications = {
+  unread_count: number
+  items: PostMentionNotificationItem[]
 }
 
 export async function getMe(): Promise<Me> {
@@ -280,4 +311,27 @@ export async function createBoardPost(payload: {
   })
 
   return r.data
+}
+
+export async function getBoardComments(postId: number): Promise<BoardComment[]> {
+  const r = await api.get(`/api/posts/${postId}/comments`)
+  return r.data
+}
+
+export async function addBoardComment(postId: number, body: string): Promise<BoardComment> {
+  const r = await api.post(`/api/posts/${postId}/comments`, { body })
+  return r.data
+}
+
+export async function setBoardReaction(postId: number, emoji: string | null): Promise<void> {
+  await api.post(`/api/posts/${postId}/reactions`, { emoji: emoji || '' })
+}
+
+export async function getPostMentionNotifications(): Promise<PostMentionNotifications> {
+  const r = await api.get('/api/posts/notifications/mentions')
+  return r.data
+}
+
+export async function markPostMentionsReadAll(): Promise<void> {
+  await api.post('/api/posts/notifications/mentions/read-all')
 }
