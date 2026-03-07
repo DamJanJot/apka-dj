@@ -1331,6 +1331,11 @@ body.sidebar-collapsed .link-text {
   gap: 8px;
 }
 
+.board-edit-wrap {
+  display: grid;
+  gap: 8px;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;

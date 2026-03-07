@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrbitumFriendship;
+use App\Models\OrbitumCommentMention;
 use App\Models\OrbitumPostComment;
 use App\Models\OrbitumPostMention;
 use App\Models\OrbitumPost;
@@ -235,7 +236,104 @@ class OrbitumPostsController extends Controller
             'body' => trim((string) $data['body']),
         ]);
 
+        $this->createMentionsForComment(
+            (int) $comment->id,
+            $post,
+            $me,
+            (string) $comment->body
+        );
+
         return response()->json($comment, 201);
+    }
+
+    public function updatePost(Request $request, int $postId)
+    {
+        $me = (int) $request->user()->id;
+
+        $post = OrbitumPost::query()
+            ->where('id', $postId)
+            ->where('author_user_id', $me)
+            ->firstOrFail();
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:10000'],
+        ]);
+
+        $post->body = trim((string) $data['body']);
+        $post->save();
+
+        OrbitumPostMention::query()->where('post_id', $postId)->delete();
+        $selectedIds = OrbitumPostAudience::query()->where('post_id', $postId)->pluck('user_id');
+        $this->createMentionsForPost($postId, $me, (string) $post->body, (string) $post->visibility, $selectedIds);
+
+        return response()->json($post);
+    }
+
+    public function deletePost(Request $request, int $postId)
+    {
+        $me = (int) $request->user()->id;
+
+        $post = OrbitumPost::query()
+            ->where('id', $postId)
+            ->where('author_user_id', $me)
+            ->firstOrFail();
+
+        $commentIds = OrbitumPostComment::query()
+            ->where('post_id', $postId)
+            ->pluck('id');
+
+        DB::transaction(function () use ($postId, $commentIds, $post) {
+            if ($commentIds->isNotEmpty()) {
+                OrbitumCommentMention::query()->whereIn('comment_id', $commentIds)->delete();
+            }
+
+            OrbitumPostComment::query()->where('post_id', $postId)->delete();
+            OrbitumPostReaction::query()->where('post_id', $postId)->delete();
+            OrbitumPostMention::query()->where('post_id', $postId)->delete();
+            OrbitumPostAudience::query()->where('post_id', $postId)->delete();
+            $post->delete();
+        });
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function updateComment(Request $request, int $commentId)
+    {
+        $me = (int) $request->user()->id;
+
+        $comment = OrbitumPostComment::query()
+            ->where('id', $commentId)
+            ->where('user_id', $me)
+            ->firstOrFail();
+
+        $post = OrbitumPost::query()->findOrFail((int) $comment->post_id);
+
+        $data = $request->validate([
+            'body' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $comment->body = trim((string) $data['body']);
+        $comment->save();
+
+        OrbitumCommentMention::query()->where('comment_id', $commentId)->delete();
+        $this->createMentionsForComment($commentId, $post, $me, (string) $comment->body);
+
+        return response()->json($comment);
+    }
+
+    public function deleteComment(Request $request, int $commentId)
+    {
+        $me = (int) $request->user()->id;
+
+        $comment = OrbitumPostComment::query()
+            ->where('id', $commentId)
+            ->where('user_id', $me)
+            ->firstOrFail();
+
+        OrbitumCommentMention::query()->where('comment_id', $commentId)->delete();
+        $comment->delete();
+
+        return response()->json(['ok' => true]);
     }
 
     public function setReaction(Request $request, int $postId)
@@ -274,7 +372,7 @@ class OrbitumPostsController extends Controller
     {
         $me = (int) $request->user()->id;
 
-        $items = OrbitumPostMention::query()
+        $postItems = OrbitumPostMention::query()
             ->from('orbitum_post_mentions as m')
             ->join('orbitum_posts as p', 'p.id', '=', 'm.post_id')
             ->join('uzytkownicy as u', 'u.id', '=', 'm.mentioned_by_user_id')
@@ -282,7 +380,9 @@ class OrbitumPostsController extends Controller
             ->whereNull('m.read_at')
             ->select([
                 'm.id',
+                DB::raw("'post' as mention_type"),
                 'm.post_id',
+                DB::raw('NULL as comment_id'),
                 'm.token',
                 'm.created_at',
                 'u.imie as by_imie',
@@ -290,12 +390,37 @@ class OrbitumPostsController extends Controller
                 'u.email as by_email',
                 'p.body as post_body',
             ])
-            ->orderByDesc('m.created_at')
-            ->limit(20)
             ->get();
 
+        $commentItems = OrbitumCommentMention::query()
+            ->from('orbitum_comment_mentions as m')
+            ->join('orbitum_post_comments as c', 'c.id', '=', 'm.comment_id')
+            ->join('orbitum_posts as p', 'p.id', '=', 'c.post_id')
+            ->join('uzytkownicy as u', 'u.id', '=', 'm.mentioned_by_user_id')
+            ->where('m.mentioned_user_id', $me)
+            ->whereNull('m.read_at')
+            ->select([
+                'm.id',
+                DB::raw("'comment' as mention_type"),
+                'c.post_id as post_id',
+                'm.comment_id',
+                'm.token',
+                'm.created_at',
+                'u.imie as by_imie',
+                'u.nazwisko as by_nazwisko',
+                'u.email as by_email',
+                'c.body as post_body',
+            ])
+            ->get();
+
+        $items = $postItems
+            ->concat($commentItems)
+            ->sortByDesc('created_at')
+            ->take(20)
+            ->values();
+
         return response()->json([
-            'unread_count' => (int) $items->count(),
+            'unread_count' => (int) ($postItems->count() + $commentItems->count()),
             'items' => $items,
         ]);
     }
@@ -309,7 +434,64 @@ class OrbitumPostsController extends Controller
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
+        OrbitumCommentMention::query()
+            ->where('mentioned_user_id', $me)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
         return response()->json(['ok' => true]);
+    }
+
+    private function createMentionsForComment(int $commentId, OrbitumPost $post, int $authorId, string $body): void
+    {
+        if ($body === '') {
+            return;
+        }
+
+        preg_match_all('/@([\pL\pN._-]+)/u', $body, $matches);
+        $tokens = collect($matches[1] ?? [])
+            ->map(fn($t) => mb_strtolower(trim((string) $t)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($tokens->isEmpty()) {
+            return;
+        }
+
+        $selectedIds = OrbitumPostAudience::query()->where('post_id', (int) $post->id)->pluck('user_id');
+
+        foreach ($tokens as $token) {
+            $target = LegacyUser::query()
+                ->from('uzytkownicy as u')
+                ->whereRaw('LOWER(COALESCE(u.nick, "")) = ?', [$token])
+                ->orWhereRaw('LOWER(COALESCE(u.imie, "")) = ?', [$token])
+                ->orWhereRaw('LOWER(SUBSTRING_INDEX(COALESCE(u.email, ""), "@", 1)) = ?', [$token])
+                ->select(['u.id'])
+                ->first();
+
+            if (!$target) {
+                continue;
+            }
+
+            $targetId = (int) $target->id;
+            if ($targetId === $authorId) {
+                continue;
+            }
+
+            if (!$this->canUserSeePostByVisibility((int) $post->author_user_id, (string) $post->visibility, $targetId, $selectedIds)) {
+                continue;
+            }
+
+            OrbitumCommentMention::query()->firstOrCreate([
+                'comment_id' => $commentId,
+                'mentioned_user_id' => $targetId,
+            ], [
+                'mentioned_by_user_id' => $authorId,
+                'token' => $token,
+                'read_at' => null,
+            ]);
+        }
     }
 
     private function createMentionsForPost(int $postId, int $authorId, string $body, string $visibility, $selectedIds): void

@@ -214,9 +214,13 @@ Route::middleware('auth:sanctum')->prefix('posts')->group(function () {
     Route::get('/feed', [OrbitumPostsController::class, 'feed']);
     Route::get('/audience/friends', [OrbitumPostsController::class, 'mySelectableFriends']);
     Route::post('/create', [OrbitumPostsController::class, 'create']);
+    Route::patch('/{postId}', [OrbitumPostsController::class, 'updatePost']);
+    Route::delete('/{postId}', [OrbitumPostsController::class, 'deletePost']);
 
     Route::get('/{postId}/comments', [OrbitumPostsController::class, 'comments']);
     Route::post('/{postId}/comments', [OrbitumPostsController::class, 'addComment']);
+    Route::patch('/comments/{commentId}', [OrbitumPostsController::class, 'updateComment']);
+    Route::delete('/comments/{commentId}', [OrbitumPostsController::class, 'deleteComment']);
     Route::post('/{postId}/reactions', [OrbitumPostsController::class, 'setReaction']);
 
     Route::get('/notifications/mentions', [OrbitumPostsController::class, 'mentionNotifications']);

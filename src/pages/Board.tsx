@@ -4,12 +4,17 @@ import {
   BoardComment,
   BoardPost,
   createBoardPost,
+  deleteBoardComment,
+  deleteBoardPost,
   FriendUser,
   getBoardComments,
   getBoardFeed,
+  getMe,
   getPostAudienceFriends,
   PostVisibility,
   setBoardReaction,
+  updateBoardComment,
+  updateBoardPost,
 } from '@/api/client'
 
 const DEFAULT_AVATAR = '/dj-api/public/uploads/default.png'
@@ -60,6 +65,7 @@ function renderRichText(text: string) {
 }
 
 export default function Board() {
+  const [meId, setMeId] = useState<number>(0)
   const [feed, setFeed] = useState<BoardPost[]>([])
   const [friends, setFriends] = useState<FriendUser[]>([])
 
@@ -73,6 +79,10 @@ export default function Board() {
   const [commentDraftByPost, setCommentDraftByPost] = useState<Record<number, string>>({})
   const [busyCommentPostId, setBusyCommentPostId] = useState<number | null>(null)
   const [busyReactionPostId, setBusyReactionPostId] = useState<number | null>(null)
+  const [editingPostId, setEditingPostId] = useState<number | null>(null)
+  const [editingPostBody, setEditingPostBody] = useState('')
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
+  const [editingCommentBody, setEditingCommentBody] = useState('')
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -91,10 +101,11 @@ export default function Board() {
     const load = async () => {
       setLoading(true)
       try {
-        const [feedData, friendsData] = await Promise.all([getBoardFeed(), getPostAudienceFriends()])
+        const [feedData, friendsData, me] = await Promise.all([getBoardFeed(), getPostAudienceFriends(), getMe()])
         if (!mounted) return
         setFeed(feedData)
         setFriends(friendsData)
+        setMeId(Number(me.id || 0))
       } catch {
         if (!mounted) return
         setMessage('Nie udalo sie pobrac tablicy.')
@@ -107,6 +118,14 @@ export default function Board() {
     return () => {
       mounted = false
     }
+  }, [])
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      getBoardFeed().then((data) => setFeed(data)).catch(() => {})
+    }, 12000)
+
+    return () => window.clearInterval(id)
   }, [])
 
   const refreshFeed = async () => {
@@ -158,6 +177,66 @@ export default function Board() {
       setMessage('Nie udalo sie dodac komentarza.')
     } finally {
       setBusyCommentPostId(null)
+    }
+  }
+
+  const onPostEditStart = (post: BoardPost) => {
+    setEditingPostId(Number(post.id))
+    setEditingPostBody((post.body || '').trim())
+  }
+
+  const onPostEditSave = async (postId: number) => {
+    if (!editingPostBody.trim()) return
+
+    try {
+      await updateBoardPost(postId, editingPostBody.trim())
+      setEditingPostId(null)
+      setEditingPostBody('')
+      await refreshFeed()
+    } catch {
+      setMessage('Nie udalo sie zapisac zmian posta.')
+    }
+  }
+
+  const onPostDelete = async (postId: number) => {
+    try {
+      await deleteBoardPost(postId)
+      setEditingPostId(null)
+      setEditingPostBody('')
+      await refreshFeed()
+    } catch {
+      setMessage('Nie udalo sie usunac posta.')
+    }
+  }
+
+  const onCommentEditStart = (comment: BoardComment) => {
+    setEditingCommentId(Number(comment.id))
+    setEditingCommentBody((comment.body || '').trim())
+  }
+
+  const onCommentEditSave = async (postId: number, commentId: number) => {
+    if (!editingCommentBody.trim()) return
+
+    try {
+      await updateBoardComment(commentId, editingCommentBody.trim())
+      const items = await getBoardComments(postId)
+      setCommentsByPost((prev) => ({ ...prev, [postId]: items }))
+      setEditingCommentId(null)
+      setEditingCommentBody('')
+      await refreshFeed()
+    } catch {
+      setMessage('Nie udalo sie zaktualizowac komentarza.')
+    }
+  }
+
+  const onCommentDelete = async (postId: number, commentId: number) => {
+    try {
+      await deleteBoardComment(commentId)
+      const items = await getBoardComments(postId)
+      setCommentsByPost((prev) => ({ ...prev, [postId]: items }))
+      await refreshFeed()
+    } catch {
+      setMessage('Nie udalo sie usunac komentarza.')
     }
   }
 
@@ -274,6 +353,7 @@ export default function Board() {
           {feed.map((post) => {
             const avatar = assetUrl(post.author_avatar) || DEFAULT_AVATAR
             const imageUrl = assetUrl(post.image_path)
+            const isMyPost = Number(post.author_user_id) === Number(meId)
 
             return (
               <article key={post.id} className="board-post-item">
@@ -293,7 +373,22 @@ export default function Board() {
                   </div>
                 </div>
 
-                {!!post.body && <div className="board-post-body">{renderRichText(post.body)}</div>}
+                {editingPostId === Number(post.id) ? (
+                  <div className="board-edit-wrap">
+                    <textarea
+                      className="board-textarea"
+                      value={editingPostBody}
+                      onChange={(e) => setEditingPostBody(e.target.value)}
+                      rows={3}
+                    />
+                    <div className="friend-actions-inline">
+                      <button type="button" className="friend-action-btn" onClick={() => onPostEditSave(Number(post.id))}>Zapisz</button>
+                      <button type="button" className="friend-action-btn ghost" onClick={() => { setEditingPostId(null); setEditingPostBody('') }}>Anuluj</button>
+                    </div>
+                  </div>
+                ) : (
+                  !!post.body && <div className="board-post-body">{renderRichText(post.body)}</div>
+                )}
 
                 {imageUrl && (
                   <a href={imageUrl} target="_blank" rel="noreferrer noopener" className="chat-image-link">
@@ -324,6 +419,13 @@ export default function Board() {
                   >
                     Komentarze ({post.comments_count || 0})
                   </button>
+
+                  {isMyPost && (
+                    <div className="friend-actions-inline">
+                      <button type="button" className="friend-action-btn ghost" onClick={() => onPostEditStart(post)}>Edytuj</button>
+                      <button type="button" className="friend-action-btn ghost" onClick={() => onPostDelete(Number(post.id))}>Usun</button>
+                    </div>
+                  )}
                 </div>
 
                 {openComments[Number(post.id)] && (
@@ -337,7 +439,56 @@ export default function Board() {
                               <strong>{fullName(comment)}</strong>
                               <span className="small muted">{new Date(comment.created_at).toLocaleString('pl-PL')}</span>
                             </div>
-                            <div className="board-post-body">{renderRichText(comment.body)}</div>
+
+                            {editingCommentId === Number(comment.id) ? (
+                              <div className="board-edit-wrap">
+                                <input
+                                  className="chat-compose-input"
+                                  value={editingCommentBody}
+                                  onChange={(e) => setEditingCommentBody(e.target.value)}
+                                />
+                                <div className="friend-actions-inline">
+                                  <button
+                                    type="button"
+                                    className="friend-action-btn"
+                                    onClick={() => onCommentEditSave(Number(post.id), Number(comment.id))}
+                                  >
+                                    Zapisz
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="friend-action-btn ghost"
+                                    onClick={() => {
+                                      setEditingCommentId(null)
+                                      setEditingCommentBody('')
+                                    }}
+                                  >
+                                    Anuluj
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="board-post-body">{renderRichText(comment.body)}</div>
+                            )}
+
+                            {Number(comment.user_id) === Number(meId) && editingCommentId !== Number(comment.id) && (
+                              <div className="friend-actions-inline" style={{ marginTop: 6 }}>
+                                <button
+                                  type="button"
+                                  className="friend-action-btn ghost"
+                                  onClick={() => onCommentEditStart(comment)}
+                                >
+                                  Edytuj
+                                </button>
+                                <button
+                                  type="button"
+                                  className="friend-action-btn ghost"
+                                  onClick={() => onCommentDelete(Number(post.id), Number(comment.id))}
+                                >
+                                  Usun
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

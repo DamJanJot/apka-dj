@@ -226,7 +226,10 @@ export default function Topbar() {
                         onClick={openBoardFromMention}
                       >
                         <div>
-                          <strong>{n.by_imie || n.by_email || 'Uzytkownik'} wspomnial Cie w poscie</strong>
+                          <strong>
+                            {n.by_imie || n.by_email || 'Uzytkownik'} wspomnial Cie
+                            {n.mention_type === 'comment' ? ' w komentarzu' : ' w poscie'}
+                          </strong>
                         </div>
                         <div className="small muted">{(n.post_body || '').slice(0, 80) || '(brak tresci)'}</div>
                       </button>

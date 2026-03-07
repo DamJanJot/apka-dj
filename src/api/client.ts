@@ -144,7 +144,9 @@ export type BoardComment = {
 
 export type PostMentionNotificationItem = {
   id: number
+  mention_type?: 'post' | 'comment'
   post_id: number
+  comment_id?: number | null
   token: string
   created_at: string
   by_imie?: string | null
@@ -313,6 +315,15 @@ export async function createBoardPost(payload: {
   return r.data
 }
 
+export async function updateBoardPost(postId: number, body: string): Promise<BoardPost> {
+  const r = await api.patch(`/api/posts/${postId}`, { body })
+  return r.data
+}
+
+export async function deleteBoardPost(postId: number): Promise<void> {
+  await api.delete(`/api/posts/${postId}`)
+}
+
 export async function getBoardComments(postId: number): Promise<BoardComment[]> {
   const r = await api.get(`/api/posts/${postId}/comments`)
   return r.data
@@ -321,6 +332,15 @@ export async function getBoardComments(postId: number): Promise<BoardComment[]> 
 export async function addBoardComment(postId: number, body: string): Promise<BoardComment> {
   const r = await api.post(`/api/posts/${postId}/comments`, { body })
   return r.data
+}
+
+export async function updateBoardComment(commentId: number, body: string): Promise<BoardComment> {
+  const r = await api.patch(`/api/posts/comments/${commentId}`, { body })
+  return r.data
+}
+
+export async function deleteBoardComment(commentId: number): Promise<void> {
+  await api.delete(`/api/posts/comments/${commentId}`)
 }
 
 export async function setBoardReaction(postId: number, emoji: string | null): Promise<void> {
