@@ -6,9 +6,10 @@ import News from '@/pages/News'
 import Markets from '@/pages/Markets'
 import Docs from '@/pages/Docs'
 import Login from '@/pages/Login'
-import Profile from "@/pages/Profile";
-import EditProfile from "@/pages/EditProfile";
-import Settings from "@/pages/Settings";
+import Register from '@/pages/Register'
+import Profile from '@/pages/Profile'
+import EditProfile from '@/pages/EditProfile'
+import Settings from '@/pages/Settings'
 
 // komponent chroniący dostęp do podstron wymagających zalogowania
 
@@ -21,9 +22,9 @@ function Protected({ children }: { children: JSX.Element }) {
 
 export default function App() {
   return (
-   <Routes> 
-    
+    <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
 
       <Route
         path="/"
@@ -33,13 +34,10 @@ export default function App() {
           </Protected>
         }
       >
-
-        <Route index element={<Dashboard />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="profile" element={<Profile />} />
         <Route path="profile/edit" element={<EditProfile />} />
         <Route path="settings" element={<Settings />} />
-
-        <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="news" element={<News />} />
         <Route path="markets" element={<Markets />} />

@@ -1,7 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
-import { useNavigate } from 'react-router-dom'
-import { AlignCenter } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function Login() {
   const { login } = useAuth()
@@ -47,7 +46,7 @@ export default function Login() {
             Zaloguj
           </button>
           <div style={{ textAlign: 'center', marginTop: 16 }}>
-            <a href="/register" style={{ color: '#4c5a70ff' }}>Nie masz konta? Zarejestruj się</a>
+            <Link to="/register" style={{ color: '#4c5a70ff' }}>Nie masz konta? Zarejestruj sie</Link>
           </div>
         </div>
       </form>

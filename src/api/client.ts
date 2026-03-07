@@ -46,6 +46,17 @@ export async function login(email: string, password: string): Promise<Me> {
   return getMe()
 }
 
+export async function register(payload: {
+  imie: string
+  email: string
+  password: string
+  password_confirmation: string
+}): Promise<Me> {
+  await api.get('/sanctum/csrf-cookie')
+  await api.post('/api/register', payload)
+  return getMe()
+}
+
 export async function logout() {
   await api.post('/api/logout')
 }

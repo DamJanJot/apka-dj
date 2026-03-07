@@ -2,6 +2,7 @@ import SunClockWidget from '../components/sun-clock-widget'
 import WeatherWidget from '@/components/weather_widget';
 import WeatherForecast from '@/components/weather-forecast';
 
+const weatherApiKey = import.meta.env.VITE_WEATHER_API_KEY ?? ''
 
 
 export default function Dashboard(){
@@ -10,9 +11,9 @@ export default function Dashboard(){
       <div className='card'>
         <div className='grid'>
           <SunClockWidget />
-          <WeatherWidget city="Warszawa" apiKey="af8b3311443695ee4563e7d85bec9253" />
+          <WeatherWidget city="Warszawa" apiKey={weatherApiKey} />
         </div> 
-        <WeatherForecast city="Warszawa" apiKey="af8b3311443695ee4563e7d85bec9253" />       
+        <WeatherForecast city="Warszawa" apiKey={weatherApiKey} />       
       </div>             
     </div>
   )

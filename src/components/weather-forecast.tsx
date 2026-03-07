@@ -15,8 +15,14 @@ const daysPl = ['ndz.', 'pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.'];
 
 export default function WeatherForecast({ city, apiKey }: Props) {
   const [items, setItems] = useState<ForecastItem[]>([]);
+  const hasApiKey = Boolean(apiKey);
 
   useEffect(() => {
+    if (!hasApiKey) {
+      setItems([]);
+      return;
+    }
+
     const run = async () => {
       try {
         const res = await fetch(
@@ -58,7 +64,7 @@ export default function WeatherForecast({ city, apiKey }: Props) {
       }
     };
     run();
-  }, [city, apiKey]);
+  }, [city, apiKey, hasApiKey]);
 
   return (
     <div className="widget">

@@ -1,4 +1,3 @@
-
 ---
 
 ## 🚀 Quick Start
@@ -6,6 +5,9 @@
 ```bash
 # Install dependencies
 npm install
+
+# Configure local env
+cp .env.example .env.local
 
 # Start development server
 npm run dev
@@ -36,16 +38,21 @@ Instead of using mocks from `services/mock.ts`, connect your own backend:
 - Use Vite environment variables (e.g. `VITE_API_URL`)
 - Make sure your backend handles **CORS**
 
+Required env variables:
+
+- `VITE_API_URL` - backend URL, e.g. `http://localhost:8000`
+- `VITE_WEATHER_API_KEY` - OpenWeather API key for dashboard widgets
+
 ---
 
 ## ☁️ Deploy (Vercel)
 
 1. Create a new project from this repo
-2. Set build command:  
+2. Set build command:
    ```bash
    npm run build
    ```
-3. Set output directory:  
+3. Set output directory:
    ```
    dist
    ```

@@ -21,7 +21,7 @@ interface User {
 
 export default function Topbar() {
   const loc = useLocation()
-  const title = TITLE[loc.pathname] ?? 'Orbi'
+  const title = TITLE[loc.pathname] ?? 'Orbitum'
 
   const [isMobile, setIsMobile] = useState(window.matchMedia(MQ_MOBILE).matches)
   const [collapsed, setCollapsed] = useState(document.body.classList.contains('sidebar-collapsed'))
@@ -115,7 +115,7 @@ export default function Topbar() {
           <div className="avatar-wrap">
             <button className="avatar" onClick={() => { setMenuOpen(v => !v); setNotifOpen(false) }}>
               <img
-                src={user?.zdjecie_profilowe ? `http://localhost:8000/${user.zdjecie_profilowe}` : "/default-avatar.png"}
+                src={user?.zdjecie_profilowe ? `http://localhost:8000/${user.zdjecie_profilowe}` : "/dj-api/public/uploads/default.png"}
                 alt="U"
               />
             </button>
@@ -127,7 +127,8 @@ export default function Topbar() {
                     email: user?.email ?? '—',
                     avatarUrl: user?.zdjecie_profilowe
                       ? `http://localhost:8000/${user.zdjecie_profilowe}`
-                      : '/default-avatar.png',
+                      : "/dj-api/public/uploads/default.png"
+
                   }}
                   onLogout={() => {
                     // wylogowanie

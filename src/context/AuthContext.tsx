@@ -1,10 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { Me, getMe, login as apiLogin, logout as apiLogout } from '@/api/client'
+import { Me, getMe, login as apiLogin, logout as apiLogout, register as apiRegister } from '@/api/client'
 
 type AuthCtx = {
   user: Me | null
   loading: boolean
   login: (email: string, password: string) => Promise<boolean>
+  register: (payload: {
+    imie: string
+    email: string
+    password: string
+    password_confirmation: string
+  }) => Promise<boolean>
   logout: () => Promise<void>
 }
 
@@ -29,12 +35,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  async function register(payload: {
+    imie: string
+    email: string
+    password: string
+    password_confirmation: string
+  }) {
+    try {
+      const me = await apiRegister(payload)
+      setUser(me)
+      return true
+    } catch (e) {
+      setUser(null)
+      throw e
+    }
+  }
+
   async function logout() {
     await apiLogout()
     setUser(null)
   }
 
-  return <Ctx.Provider value={{ user, loading, login, logout }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ user, loading, login, register, logout }}>{children}</Ctx.Provider>
 }
 
 export function useAuth() {

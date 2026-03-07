@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 use App\Models\LegacyUser;
 use App\Models\News;
 use App\Models\Rate;
@@ -31,6 +32,27 @@ Route::middleware('auth:sanctum')->put('/profile/update', function (Request $req
 
 
 // ---------- AUTH (SPA cookie) ----------
+
+Route::post('/register', function (Request $request) {
+    $data = $request->validate([
+        'imie' => ['required', 'string', 'max:100'],
+        'email' => ['required', 'email', 'max:255', 'unique:uzytkownicy,email'],
+        'password' => ['required', 'string', 'min:8', 'confirmed'],
+    ]);
+
+    $user = LegacyUser::create([
+        'imie' => $data['imie'],
+        'email' => $data['email'],
+        'nick' => Str::before($data['email'], '@'),
+        'rola' => 'user',
+        'haslo' => Hash::make($data['password']),
+    ]);
+
+    Auth::login($user);
+    $request->session()->regenerate();
+
+    return response()->json(['ok' => true], 201);
+});
 
 Route::post('/login', function (Request $request) {
     $data = $request->validate([
