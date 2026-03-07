@@ -948,6 +948,318 @@ body.sidebar-collapsed .link-text {
   cursor: not-allowed;
 }
 
+/* friends */
+.friends-card {
+  padding: 20px;
+}
+
+.friends-title {
+  margin: 0 0 18px;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.friends-layout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.friends-panel {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+}
+
+.friends-section-title {
+  margin: 0 0 10px;
+}
+
+.friends-search-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  margin-bottom: 10px;
+}
+
+.friends-search-input:focus {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
+}
+
+.friends-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 36vh;
+  overflow-y: auto;
+}
+
+.friend-row {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.friend-row-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.friend-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #0b1220;
+  flex: 0 0 auto;
+}
+
+.friend-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.friend-meta strong,
+.friend-meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friend-actions-inline {
+  display: flex;
+  gap: 6px;
+}
+
+.friend-action-btn {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: linear-gradient(
+    180deg,
+    rgba(17, 106, 190, 0.6),
+    rgba(17, 106, 190, 0.35)
+  );
+  color: #eaf2ff;
+  font-weight: 600;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.friend-action-btn.ghost {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.friend-action-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.friend-link-btn {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-weight: 600;
+  padding: 7px 10px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.friend-link-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.friend-state-pill {
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  white-space: nowrap;
+}
+
+.friend-state-pill.incoming {
+  color: #7dd3fc;
+  border-color: rgba(125, 211, 252, 0.5);
+}
+
+.friend-state-pill.outgoing {
+  color: #fcd34d;
+  border-color: rgba(252, 211, 77, 0.5);
+}
+
+.friend-state-pill.friend {
+  color: #86efac;
+  border-color: rgba(134, 239, 172, 0.5);
+}
+
+.friends-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.friend-card-mini {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* board */
+.board-card {
+  padding: 20px;
+}
+
+.board-title {
+  margin: 0 0 18px;
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.board-section-title {
+  margin: 0 0 10px;
+}
+
+.board-compose,
+.board-feed {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 12px;
+}
+
+.board-compose {
+  margin-bottom: 12px;
+}
+
+.board-compose-form {
+  display: grid;
+  gap: 10px;
+}
+
+.board-textarea {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  outline: none;
+  resize: vertical;
+}
+
+.board-textarea:focus,
+.board-select:focus {
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18);
+}
+
+.board-compose-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.board-label {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.board-select {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 8px 10px;
+  outline: none;
+}
+
+.board-audience-wrap {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+}
+
+.board-audience-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.board-audience-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.board-submit {
+  justify-self: start;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: linear-gradient(
+    180deg,
+    rgba(17, 106, 190, 0.6),
+    rgba(17, 106, 190, 0.35)
+  );
+  color: #eaf2ff;
+  font-weight: 600;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.board-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.board-feed-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-post-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+}
+
+.board-post-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.board-post-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
@@ -1010,6 +1322,18 @@ body.sidebar-collapsed .link-text {
   }
 
   .chat-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .friends-title {
+    font-size: 1.7rem;
+  }
+
+  .board-title {
+    font-size: 1.7rem;
+  }
+
+  .friends-layout {
     grid-template-columns: 1fr;
   }
 

@@ -75,6 +75,7 @@ export default function Messages() {
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [loadingThread, setLoadingThread] = useState(false)
+  const [threadError, setThreadError] = useState<string | null>(null)
 
   const selectedUser = useMemo(
     () => users.find((u) => Number(u.id) === Number(selectedUserId)),
@@ -136,11 +137,22 @@ export default function Messages() {
 
     const load = (showLoader: boolean) => {
       if (showLoader) setLoadingThread(true)
+      setThreadError(null)
 
       getChatThread(selectedUserId)
         .then((data) => {
           if (!mounted) return
           setThread(data)
+        })
+        .catch((err) => {
+          if (!mounted) return
+
+          const status = Number(err?.response?.status || 0)
+          if (status === 403) {
+            setThreadError('Rozmowa dostepna tylko dla znajomych.')
+          } else {
+            setThreadError('Nie udalo sie pobrac rozmowy.')
+          }
         })
         .finally(() => {
           if (showLoader && mounted) {
@@ -261,8 +273,9 @@ export default function Messages() {
 
           <div className="chat-thread">
             {loadingThread && <div className="small muted">Ladowanie rozmowy...</div>}
+            {!loadingThread && threadError && <div className="small" style={{ color: '#fca5a5' }}>{threadError}</div>}
 
-            {!loadingThread && thread.length === 0 && (
+            {!loadingThread && !threadError && thread.length === 0 && (
               <div className="small muted">Brak wiadomosci. Napisz pierwsza.</div>
             )}
 

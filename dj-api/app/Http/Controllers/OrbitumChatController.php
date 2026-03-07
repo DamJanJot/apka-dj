@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LegacyUser;
+use App\Models\OrbitumFriendship;
 use App\Models\OrbitumChatMessage;
 use App\Models\OrbitumUserActivityStatus;
 use Illuminate\Http\Request;
@@ -17,8 +18,14 @@ class OrbitumChatController extends Controller
 
         $users = LegacyUser::query()
             ->from('uzytkownicy as u')
+            ->join('orbitum_friendships as f', function ($join) use ($me) {
+                $join->on('u.id', '=', DB::raw("CASE WHEN f.user_one_id = {$me} THEN f.user_two_id ELSE f.user_one_id END"));
+            })
             ->leftJoin('orbitum_user_activity_statuses as s', 's.user_id', '=', 'u.id')
             ->where('u.id', '!=', $me)
+            ->where(function ($q) use ($me) {
+                $q->where('f.user_one_id', $me)->orWhere('f.user_two_id', $me);
+            })
             ->select([
                 'u.id',
                 'u.imie',
@@ -40,6 +47,9 @@ class OrbitumChatController extends Controller
         $me = (int) $request->user()->id;
 
         LegacyUser::query()->where('id', $userId)->firstOrFail();
+        if (!$this->areFriends($me, $userId)) {
+            return response()->json(['message' => 'Rozmowy sa dostepne tylko dla znajomych.'], 403);
+        }
 
         OrbitumChatMessage::query()
             ->where('from_user_id', $userId)
@@ -73,6 +83,10 @@ class OrbitumChatController extends Controller
 
         if ((int) $data['to_user_id'] === $me) {
             return response()->json(['message' => 'Nie mozesz wyslac wiadomosci do siebie.'], 422);
+        }
+
+        if (!$this->areFriends($me, (int) $data['to_user_id'])) {
+            return response()->json(['message' => 'Wiadomosci mozna wysylac tylko do znajomych.'], 403);
         }
 
         $body = trim((string) ($data['body'] ?? ''));
@@ -203,5 +217,15 @@ class OrbitumChatController extends Controller
         }
 
         return false;
+    }
+
+    private function areFriends(int $a, int $b): bool
+    {
+        [$one, $two] = $a < $b ? [$a, $b] : [$b, $a];
+
+        return OrbitumFriendship::query()
+            ->where('user_one_id', $one)
+            ->where('user_two_id', $two)
+            ->exists();
     }
 }

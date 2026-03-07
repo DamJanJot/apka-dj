@@ -68,8 +68,72 @@ export type ChatNotifications = {
   items: ChatNotificationItem[]
 }
 
+export type FriendState = 'none' | 'incoming' | 'outgoing' | 'friend'
+
+export type FriendUser = {
+  id: number
+  imie?: string
+  nazwisko?: string
+  email?: string
+  zdjecie_profilowe?: string | null
+}
+
+export type FriendSearchItem = FriendUser & {
+  friend_state: FriendState
+}
+
+export type IncomingFriendRequest = {
+  id: number
+  from_user_id: number
+  created_at: string
+  imie?: string
+  nazwisko?: string
+  email?: string
+  zdjecie_profilowe?: string | null
+}
+
+export type OutgoingFriendRequest = {
+  id: number
+  to_user_id: number
+  created_at: string
+  imie?: string
+  nazwisko?: string
+  email?: string
+  zdjecie_profilowe?: string | null
+}
+
+export type ProfileDetails = {
+  id: number
+  imie?: string
+  nazwisko?: string
+  email?: string
+  zdjecie_profilowe?: string | null
+  is_self: boolean
+  is_friend: boolean
+}
+
+export type PostVisibility = 'public' | 'friends' | 'selected'
+
+export type BoardPost = {
+  id: number
+  author_user_id: number
+  visibility: PostVisibility
+  body?: string | null
+  image_path?: string | null
+  created_at: string
+  author_imie?: string | null
+  author_nazwisko?: string | null
+  author_email?: string | null
+  author_avatar?: string | null
+}
+
 export async function getMe(): Promise<Me> {
   const r = await api.get('/api/me')
+  return r.data
+}
+
+export async function getProfileById(userId: number): Promise<ProfileDetails> {
+  const r = await api.get(`/api/profile/${userId}`)
   return r.data
 }
 
@@ -141,4 +205,79 @@ export async function pingChatActivity(): Promise<void> {
 
 export async function setChatOffline(): Promise<void> {
   await api.post('/api/chat/activity/offline')
+}
+
+export async function listFriends(): Promise<FriendUser[]> {
+  const r = await api.get('/api/friends/list')
+  return r.data
+}
+
+export async function listIncomingFriendRequests(): Promise<IncomingFriendRequest[]> {
+  const r = await api.get('/api/friends/incoming')
+  return r.data
+}
+
+export async function listOutgoingFriendRequests(): Promise<OutgoingFriendRequest[]> {
+  const r = await api.get('/api/friends/outgoing')
+  return r.data
+}
+
+export async function searchUsersForFriendship(query: string): Promise<FriendSearchItem[]> {
+  const r = await api.get('/api/friends/search', { params: { q: query } })
+  return r.data
+}
+
+export async function sendFriendRequest(toUserId: number): Promise<void> {
+  await api.post('/api/friends/request', { to_user_id: toUserId })
+}
+
+export async function acceptFriendRequest(requestId: number): Promise<void> {
+  await api.post(`/api/friends/incoming/${requestId}/accept`)
+}
+
+export async function rejectFriendRequest(requestId: number): Promise<void> {
+  await api.post(`/api/friends/incoming/${requestId}/reject`)
+}
+
+export async function cancelOutgoingFriendRequest(requestId: number): Promise<void> {
+  await api.post(`/api/friends/outgoing/${requestId}/cancel`)
+}
+
+export async function getBoardFeed(): Promise<BoardPost[]> {
+  const r = await api.get('/api/posts/feed')
+  return r.data
+}
+
+export async function getPostAudienceFriends(): Promise<FriendUser[]> {
+  const r = await api.get('/api/posts/audience/friends')
+  return r.data
+}
+
+export async function createBoardPost(payload: {
+  visibility: PostVisibility
+  body?: string
+  image?: File | null
+  selectedUserIds?: number[]
+}): Promise<BoardPost> {
+  const form = new FormData()
+  form.append('visibility', payload.visibility)
+  form.append('body', payload.body || '')
+
+  if (payload.image) {
+    form.append('image', payload.image)
+  }
+
+  if (payload.visibility === 'selected' && payload.selectedUserIds?.length) {
+    payload.selectedUserIds.forEach((id) => {
+      form.append('selected_user_ids[]', String(id))
+    })
+  }
+
+  const r = await api.post('/api/posts/create', form, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+
+  return r.data
 }

@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { getMe, getProfileById } from '@/api/client'
 
 interface User {
+  id?: number
   imie: string
+  nazwisko?: string
   email: string
   zdjecie_profilowe: string | null
+  is_self?: boolean
+  is_friend?: boolean
 }
 
 export default function Profile() {
+  const { userId } = useParams()
+  const requestedUserId = Number(userId || 0)
+
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -18,11 +26,40 @@ export default function Profile() {
   }, [user])
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/me', { credentials: 'include' })
-      .then((res) => res.json())
-      .then((data) => setUser(data))
-      .catch(() => setError('Nie udalo sie pobrac profilu.'))
-  }, [])
+    let mounted = true
+
+    const load = async () => {
+      try {
+        const data = requestedUserId > 0
+          ? await getProfileById(requestedUserId)
+          : await getMe().then((me) => ({
+              id: me.id,
+              imie: me.imie || '',
+              nazwisko: me.nazwisko || '',
+              email: me.email,
+              zdjecie_profilowe: me.avatar || null,
+              is_self: true,
+              is_friend: true,
+            }))
+
+        if (!mounted) return
+        setUser(data as User)
+      } catch (err: any) {
+        if (!mounted) return
+        const status = Number(err?.response?.status || 0)
+        if (status === 403) {
+          setError('Ten profil jest dostepny tylko dla znajomych.')
+        } else {
+          setError('Nie udalo sie pobrac profilu.')
+        }
+      }
+    }
+
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [requestedUserId])
 
   if (!user && !error) {
     return (
@@ -57,15 +94,22 @@ export default function Profile() {
           </div>
 
           <div className="profile-view-row">
+            <span className="profile-view-label">Nazwisko</span>
+            <span className="profile-view-value">{user?.nazwisko || '-'}</span>
+          </div>
+
+          <div className="profile-view-row">
             <span className="profile-view-label">E-mail</span>
             <span className="profile-view-value">{user?.email || '-'}</span>
           </div>
 
-          <div className="profile-view-actions">
-            <Link to="/profile/edit" className="profile-view-edit-btn">
-              Edytuj profil
-            </Link>
-          </div>
+          {user?.is_self !== false && (
+            <div className="profile-view-actions">
+              <Link to="/profile/edit" className="profile-view-edit-btn">
+                Edytuj profil
+              </Link>
+            </div>
+          )}
         </div>
       </div>
     </div>

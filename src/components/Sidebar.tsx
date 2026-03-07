@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare } from 'lucide-react'
+import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound } from 'lucide-react'
 
 export default function Sidebar() {
   return (
@@ -28,6 +28,16 @@ export default function Sidebar() {
         <NavLink to="/messages" title="Wiadomosci" className="nav-item">
           <MessageSquare className="nav-icon" size={18} />
           <span className="link-text">Wiadomosci</span>
+        </NavLink>
+
+        <NavLink to="/friends" title="Znajomi" className="nav-item">
+          <UsersRound className="nav-icon" size={18} />
+          <span className="link-text">Znajomi</span>
+        </NavLink>
+
+        <NavLink to="/board" title="Tablica" className="nav-item">
+          <Newspaper className="nav-icon" size={18} />
+          <span className="link-text">Tablica</span>
         </NavLink>
 
         <NavLink to="/docs" title="Documentation" className="nav-item">

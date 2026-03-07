@@ -19,6 +19,8 @@ const TITLE: Record<string, string> = {
   '/news': 'Aktualności',
   '/markets': 'Rynki',
   '/messages': 'Wiadomosci',
+  '/friends': 'Znajomi',
+  '/board': 'Tablica',
   '/profile': 'Profil',
   '/profile/edit': 'Edytuj profil',
   '/docs': 'Documentation',
@@ -33,7 +35,9 @@ interface User {
 export default function Topbar() {
   const loc = useLocation()
   const nav = useNavigate()
-  const title = TITLE[loc.pathname] ?? 'Orbitum'
+  const title = loc.pathname.startsWith('/profile/') && loc.pathname !== '/profile/edit'
+    ? 'Profil uzytkownika'
+    : (TITLE[loc.pathname] ?? 'Orbitum')
 
   const [isMobile, setIsMobile] = useState(window.matchMedia(MQ_MOBILE).matches)
   const [collapsed, setCollapsed] = useState(document.body.classList.contains('sidebar-collapsed'))

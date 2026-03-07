@@ -5,6 +5,8 @@ import Dashboard from '@/pages/Dashboard'
 import News from '@/pages/News'
 import Markets from '@/pages/Markets'
 import Messages from '@/pages/Messages'
+import Friends from '@/pages/Friends'
+import Board from '@/pages/Board'
 import Docs from '@/pages/Docs'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
@@ -37,12 +39,15 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="profile/:userId" element={<Profile />} />
         <Route path="profile/edit" element={<EditProfile />} />
         <Route path="settings" element={<Settings />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="news" element={<News />} />
         <Route path="markets" element={<Markets />} />
         <Route path="messages" element={<Messages />} />
+        <Route path="friends" element={<Friends />} />
+        <Route path="board" element={<Board />} />
         <Route path="docs" element={<Docs />} />
       </Route>
 

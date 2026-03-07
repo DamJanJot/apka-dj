@@ -9,3 +9,7 @@ dist/
 # system
 .DS_Store
 Thumbs.db
+
+# runtime uploads
+dj-api/public/uploads/chat/
+dj-api/public/uploads/posts/

@@ -6,6 +6,9 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use App\Http\Controllers\OrbitumChatController;
+use App\Http\Controllers\OrbitumFriendsController;
+use App\Http\Controllers\OrbitumPostsController;
+use App\Models\OrbitumFriendship;
 use App\Models\LegacyUser;
 use App\Models\News;
 use App\Models\OrbitumUserActivityStatus;
@@ -136,6 +139,44 @@ Route::get('/me', function (Request $request) {
     ]);
 })->middleware('auth:sanctum');
 
+Route::get('/profile/{userId}', function (Request $request, int $userId) {
+    $me = (int) $request->user()->id;
+
+    if ($userId === $me) {
+        $u = LegacyUser::query()->findOrFail($userId);
+        return response()->json([
+            'id' => $u->id,
+            'imie' => $u->imie,
+            'nazwisko' => $u->nazwisko,
+            'email' => $u->email,
+            'zdjecie_profilowe' => $u->zdjecie_profilowe,
+            'is_self' => true,
+            'is_friend' => true,
+        ]);
+    }
+
+    [$one, $two] = $me < $userId ? [$me, $userId] : [$userId, $me];
+    $isFriend = OrbitumFriendship::query()
+        ->where('user_one_id', $one)
+        ->where('user_two_id', $two)
+        ->exists();
+
+    if (!$isFriend) {
+        return response()->json(['message' => 'Profil dostepny tylko dla znajomych.'], 403);
+    }
+
+    $u = LegacyUser::query()->findOrFail($userId);
+    return response()->json([
+        'id' => $u->id,
+        'imie' => $u->imie,
+        'nazwisko' => $u->nazwisko,
+        'email' => $u->email,
+        'zdjecie_profilowe' => $u->zdjecie_profilowe,
+        'is_self' => false,
+        'is_friend' => true,
+    ]);
+})->middleware('auth:sanctum');
+
 // ---------- FEEDY ----------
 Route::get('/news', fn() => News::orderByDesc('id')->limit(30)->get());
 Route::get('/rates', fn() => Rate::orderBy('id')->get());
@@ -153,4 +194,24 @@ Route::middleware('auth:sanctum')->prefix('chat')->group(function () {
 
     Route::post('/activity/ping', [OrbitumChatController::class, 'pingActivity']);
     Route::post('/activity/offline', [OrbitumChatController::class, 'setOffline']);
+});
+
+// ---------- ZNAJOMI ----------
+Route::middleware('auth:sanctum')->prefix('friends')->group(function () {
+    Route::get('/list', [OrbitumFriendsController::class, 'list']);
+    Route::get('/incoming', [OrbitumFriendsController::class, 'incoming']);
+    Route::get('/outgoing', [OrbitumFriendsController::class, 'outgoing']);
+    Route::get('/search', [OrbitumFriendsController::class, 'search']);
+
+    Route::post('/request', [OrbitumFriendsController::class, 'sendRequest']);
+    Route::post('/incoming/{id}/accept', [OrbitumFriendsController::class, 'acceptIncoming']);
+    Route::post('/incoming/{id}/reject', [OrbitumFriendsController::class, 'rejectIncoming']);
+    Route::post('/outgoing/{id}/cancel', [OrbitumFriendsController::class, 'cancelOutgoing']);
+});
+
+// ---------- POSTY / TABLICA ----------
+Route::middleware('auth:sanctum')->prefix('posts')->group(function () {
+    Route::get('/feed', [OrbitumPostsController::class, 'feed']);
+    Route::get('/audience/friends', [OrbitumPostsController::class, 'mySelectableFriends']);
+    Route::post('/create', [OrbitumPostsController::class, 'create']);
 });
