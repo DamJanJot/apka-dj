@@ -1,72 +1,109 @@
+# DJ Application
 
-## 🚀 Quick Start
+Monorepo aplikacji webowej z frontendem React + TypeScript (Vite) oraz backendem Laravel (`dj-api`).
+
+Aktualny projekt to shell z kilkoma modulami/aplikacjami:
+
+- Orbitum
+- Neuronetix
+- Taskora
+- Optivio
+- Grafiki (planner, dawne trasy `chic` maja redirect)
+
+## Quick Start
+
+### 1) Frontend (Vite)
 
 ```bash
-# Install dependencies
 npm install
-
-# Configure local env
-cp .env.example .env.local
-
-# Start development server
 npm run dev
-
-# Production build
-npm run build && npm run preview
 ```
 
----
+Frontend domyslnie uruchamia sie na `http://localhost:5173`.
 
-## 📂 Project Structure
+### 2) Backend (Laravel)
 
+```bash
+cd dj-api
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan serve
 ```
-src/
- ├─ components/     # Cards & widgets
- ├─ pages/          # Dashboard + placeholders
- └─ services/
-     └─ mock.ts     # Mock data (can be replaced with real API calls)
+
+Backend domyslnie uruchamia sie na `http://localhost:8000`.
+
+### 3) Uruchomienie obu serwisow naraz
+
+Po instalacji zaleznosci frontendu:
+
+```bash
+npm run start:full
 ```
 
----
+Skrypt uruchamia Vite oraz `php artisan serve` w `dj-api`.
 
-## 🔌 API Integration
+## Konfiguracja (.env)
 
-Instead of using mocks from `services/mock.ts`, connect your own backend:
+Frontend korzysta z:
 
-- Replace mock requests with real API calls (Laravel, Express, etc.)
-- Use Vite environment variables (e.g. `VITE_API_URL`)
-- Make sure your backend handles **CORS**
+- `VITE_API_URL` - adres backendu, np. `http://localhost:8000`
 
-Required env variables:
+Domyslnie klient API i tak fallbackuje do `http://localhost:8000`, ale zalecane jest jawne ustawienie zmiennej.
 
-- `VITE_API_URL` - backend URL, e.g. `http://localhost:8000`
-- `VITE_WEATHER_API_KEY` - OpenWeather API key for dashboard widgets
+## Najwazniejsze trasy (frontend)
 
----
+- `/dashboard`, `/news`, `/markets`, `/messages`, `/friends`, `/board`, `/makao`
+- `/neuronetix/dashboard`
+- `/taskora/dashboard`
+- `/optivio/dashboard`
+- `/grafiki/dashboard`
+- `/grafiki/week`
+- `/grafiki/month`
+- `/grafiki/summary`
+- `/grafiki/workplan`
+- `/grafiki/messages`
+- `/grafiki/friends`
+- `/grafiki/docs`
 
-## ☁️ Deploy (Vercel)
+Kompatybilnosc: `/chic` i `/chic/*` przekierowuje na `/grafiki/dashboard`.
 
-1. Create a new project from this repo
-2. Set build command:
-   ```bash
-   npm run build
-   ```
-3. Set output directory:
-   ```
-   dist
-   ```
+## Struktura repo
 
----
+```text
+.
+|- src/                # frontend React
+|  |- components/
+|  |- context/
+|  |- layout/
+|  |- pages/
+|  |- api/
+|  |- lib/
+|  |- services/
+|- dj-api/             # backend Laravel
+|  |- app/
+|  |- routes/
+|  |- database/
+|  |- config/
+```
 
-## 🛠 Tech Stack
+## Build i preview
 
-- ⚡ [Vite](https://vitejs.dev/) — fast build tool
-- ⚛ [React](https://reactjs.org/) + [TypeScript](https://www.typescriptlang.org/)
-- 🎨 TailwindCSS (optional styling)
-- 📊 Chart.js / Recharts (widgets & charts)
+```bash
+npm run build
+npm run preview
+```
 
----
+## Tech Stack
 
-## 📜 License
+- Frontend: React 18, TypeScript, Vite, React Router
+- UI: Radix UI, Lucide Icons
+- Wykresy: Chart.js, Recharts
+- HTTP: Axios (z obsluga XSRF/cookies)
+- Backend: Laravel (PHP)
 
-MIT — feel free to use and modify.
+## Uwagi
+
+- Projekt wymaga poprawnej konfiguracji CORS i cookies po stronie Laravel przy pracy lokalnej frontend-backend.
+- W repo sa assets brandowe dla wielu modulow (Orbitum, Neuronetix, Taskora, Optivio, Grafiki).
