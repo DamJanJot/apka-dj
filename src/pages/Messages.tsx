@@ -1,5 +1,6 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { ImagePlus, MoreHorizontal, SendHorizontal } from 'lucide-react'
 import {
   ChatMessage,
   ChatUser,
@@ -73,9 +74,11 @@ export default function Messages() {
   const [draft, setDraft] = useState('')
   const [selectedImage, setSelectedImage] = useState<File | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false)
   const [loadingUsers, setLoadingUsers] = useState(true)
   const [loadingThread, setLoadingThread] = useState(false)
   const [threadError, setThreadError] = useState<string | null>(null)
+  const composeToolsRef = useRef<HTMLDivElement | null>(null)
 
   const selectedUser = useMemo(
     () => users.find((u) => Number(u.id) === Number(selectedUserId)),
@@ -171,6 +174,31 @@ export default function Messages() {
     }
   }, [selectedUserId])
 
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node
+      const root = composeToolsRef.current
+      if (root && !root.contains(target)) {
+        setActionsMenuOpen(false)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActionsMenuOpen(false)
+        setEmojiOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [])
+
   const selectUser = (userId: number) => {
     setSelectedUserId(userId)
     setSearchParams({ user: String(userId) })
@@ -190,6 +218,7 @@ export default function Messages() {
       setDraft('')
       setSelectedImage(null)
       setEmojiOpen(false)
+      setActionsMenuOpen(false)
 
       // cichy refresh po wyslaniu, bez migania loadera
       const updated = await getChatThread(selectedUserId)
@@ -241,15 +270,18 @@ export default function Messages() {
                 type="button"
               >
                 <div className="chat-user-top">
-                  <img className="chat-user-avatar" src={avatarUrl} alt="Avatar uzytkownika" />
-                  <span className="chat-user-name">{formatUserName(u)}</span>
-                </div>
+                  <div className="chat-user-mainline">
+                    <img className="chat-user-avatar" src={avatarUrl} alt="Avatar uzytkownika" />
+                    <span className="chat-user-name">{formatUserName(u)}</span>
+                  </div>
 
-                <div className="chat-user-main">
-                  {u.is_online ? <span className="chat-online-dot" /> : <span className="chat-offline-dot" />}
-                </div>
-                <div className="small muted">
-                  {u.is_online ? 'online' : `ostatnio: ${formatLastSeen(u.last_seen_at)}`}
+                  <span
+                    className={`chat-presence-pill ${u.is_online ? 'online' : 'offline'}`}
+                    title={u.is_online ? 'Uzytkownik online' : `Ostatnio: ${formatLastSeen(u.last_seen_at)}`}
+                  >
+                    {u.is_online ? <span className="chat-online-dot" /> : <span className="chat-offline-dot" />}
+                    <span>{u.is_online ? 'online' : 'offline'}</span>
+                  </span>
                 </div>
               </button>
             )
@@ -307,46 +339,117 @@ export default function Messages() {
               </div>
             )}
 
-            <input
-              className="chat-compose-input"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Napisz wiadomosc..."
-            />
+            <div className="chat-compose-row">
+              <input
+                className="chat-compose-input"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Napisz wiadomosc..."
+              />
 
-            <div className="chat-emoji-wrap">
-              <button
-                type="button"
-                className="chat-emoji-btn"
-                onClick={() => setEmojiOpen((v) => !v)}
-                aria-label="Wstaw emotke"
-                title="Wstaw emotke"
-              >
-                😊
-              </button>
+              <div className="chat-compose-actions">
+                <div className="chat-emoji-wrap">
+                  <button
+                    type="button"
+                    className="chat-emoji-btn"
+                    onClick={() => {
+                      setActionsMenuOpen(false)
+                      setEmojiOpen((v) => !v)
+                    }}
+                    aria-label="Wstaw emotke"
+                    title="Wstaw emotke"
+                  >
+                    😊
+                  </button>
 
-              {emojiOpen && (
-                <div className="chat-emoji-picker">
-                  {QUICK_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      type="button"
-                      className="chat-emoji-item"
-                      onClick={() => {
-                        setDraft((prev) => `${prev}${emoji}`)
-                        setEmojiOpen(false)
-                      }}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
+                  {emojiOpen && (
+                    <div className="chat-emoji-picker">
+                      {QUICK_EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          className="chat-emoji-item"
+                          onClick={() => {
+                            setDraft((prev) => `${prev}${emoji}`)
+                            setEmojiOpen(false)
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <label className="chat-attach-btn" htmlFor="chat-image-input">
+                  <ImagePlus size={16} />
+                  <span className="sr-only">Dodaj zdjecie</span>
+                </label>
+              </div>
+
+              <div className="chat-compose-overflow" ref={composeToolsRef}>
+                <button
+                  type="button"
+                  className="chat-more-btn"
+                  onClick={() => {
+                    setEmojiOpen(false)
+                    setActionsMenuOpen((v) => !v)
+                  }}
+                  aria-label="Wiecej akcji"
+                  title="Wiecej akcji"
+                >
+                  <MoreHorizontal size={16} />
+                </button>
+
+                {actionsMenuOpen && (
+                  <div className="chat-overflow-menu">
+                    <div className="chat-emoji-wrap">
+                      <button
+                        type="button"
+                        className="chat-emoji-btn"
+                        onClick={() => {
+                          setEmojiOpen((v) => !v)
+                        }}
+                        aria-label="Wstaw emotke"
+                        title="Wstaw emotke"
+                      >
+                        😊
+                      </button>
+
+                      {emojiOpen && (
+                        <div className="chat-emoji-picker">
+                          {QUICK_EMOJIS.map((emoji) => (
+                            <button
+                              key={`ov-${emoji}`}
+                              type="button"
+                              className="chat-emoji-item"
+                              onClick={() => {
+                                setDraft((prev) => `${prev}${emoji}`)
+                                setEmojiOpen(false)
+                                setActionsMenuOpen(false)
+                              }}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <label className="chat-attach-btn" htmlFor="chat-image-input">
+                      <ImagePlus size={16} />
+                      <span className="sr-only">Dodaj zdjecie</span>
+                    </label>
+                  </div>
+                )}
+              </div>
+
+              <button className="chat-compose-send" type="submit" disabled={!selectedUserId || (!draft.trim() && !selectedImage)}>
+                <SendHorizontal size={16} />
+                <span className="sr-only">Wyslij</span>
+              </button>
             </div>
 
-            <label className="chat-attach-btn" htmlFor="chat-image-input">
-              Dodaj zdjecie
-            </label>
             <input
               id="chat-image-input"
               className="chat-image-input"
@@ -355,13 +458,11 @@ export default function Messages() {
               onChange={(e) => {
                 const file = e.target.files?.[0] || null
                 setSelectedImage(file)
+                setEmojiOpen(false)
+                setActionsMenuOpen(false)
                 e.currentTarget.value = ''
               }}
             />
-
-            <button className="chat-compose-send" type="submit" disabled={!selectedUserId || (!draft.trim() && !selectedImage)}>
-              Wyslij
-            </button>
           </form>
         </section>
       </div>

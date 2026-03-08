@@ -92,11 +92,33 @@ class OrbitumPostsController extends Controller
                 ->where('user_id', $me)
                 ->pluck('emoji', 'post_id');
 
+        $reactionGroups = empty($postIds)
+            ? collect()
+            : OrbitumPostReaction::query()
+                ->select(['post_id', 'emoji', DB::raw('COUNT(*) as cnt')])
+                ->whereIn('post_id', $postIds)
+                ->groupBy('post_id', 'emoji')
+                ->get();
+
+        $reactionGroupsByPost = [];
+        foreach ($reactionGroups as $group) {
+            $pid = (int) $group->post_id;
+            if (!isset($reactionGroupsByPost[$pid])) {
+                $reactionGroupsByPost[$pid] = [];
+            }
+
+            $reactionGroupsByPost[$pid][] = [
+                'emoji' => (string) $group->emoji,
+                'count' => (int) $group->cnt,
+            ];
+        }
+
         foreach ($posts as $post) {
             $pid = (int) $post->id;
             $post->comments_count = (int) ($commentsByPost[$pid] ?? 0);
             $post->reactions_count = (int) ($reactionsByPost[$pid] ?? 0);
             $post->my_reaction = $myReactions[$pid] ?? null;
+            $post->reaction_groups = $reactionGroupsByPost[$pid] ?? [];
         }
 
         return response()->json($posts);

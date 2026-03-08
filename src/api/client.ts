@@ -102,6 +102,12 @@ export type OutgoingFriendRequest = {
   zdjecie_profilowe?: string | null
 }
 
+export type FriendsOverview = {
+  friends: FriendUser[]
+  incoming: IncomingFriendRequest[]
+  outgoing: OutgoingFriendRequest[]
+}
+
 export type ProfileDetails = {
   id: number
   imie?: string
@@ -128,6 +134,10 @@ export type BoardPost = {
   comments_count?: number
   reactions_count?: number
   my_reaction?: string | null
+  reaction_groups?: Array<{
+    emoji: string
+    count: number
+  }>
 }
 
 export type BoardComment = {
@@ -158,6 +168,37 @@ export type PostMentionNotificationItem = {
 export type PostMentionNotifications = {
   unread_count: number
   items: PostMentionNotificationItem[]
+}
+
+export type MakaoOnlineInvite = {
+  id: number
+  from_user_id?: number
+  to_user_id?: number
+  created_at: string
+  imie?: string
+  nazwisko?: string
+  email?: string
+  zdjecie_profilowe?: string | null
+}
+
+export type MakaoOnlineRoom = {
+  id: number
+  player_one_id: number
+  player_two_id: number
+  status: 'active' | 'finished'
+  turn_user_id?: number | null
+  last_action_by_user_id?: number | null
+  state_json?: Record<string, unknown> | null
+  action_version: number
+  created_at: string
+  updated_at: string
+}
+
+export type MakaoOnlineOverview = {
+  friends: FriendUser[]
+  incoming: MakaoOnlineInvite[]
+  outgoing: MakaoOnlineInvite[]
+  active_room?: MakaoOnlineRoom | null
 }
 
 export async function getMe(): Promise<Me> {
@@ -242,6 +283,11 @@ export async function setChatOffline(): Promise<void> {
 
 export async function listFriends(): Promise<FriendUser[]> {
   const r = await api.get('/api/friends/list')
+  return r.data
+}
+
+export async function getFriendsOverview(): Promise<FriendsOverview> {
+  const r = await api.get('/api/friends/overview')
   return r.data
 }
 
@@ -354,4 +400,51 @@ export async function getPostMentionNotifications(): Promise<PostMentionNotifica
 
 export async function markPostMentionsReadAll(): Promise<void> {
   await api.post('/api/posts/notifications/mentions/read-all')
+}
+
+export async function getMakaoOnlineOverview(): Promise<MakaoOnlineOverview> {
+  const r = await api.get('/api/makao-online/overview')
+  return r.data
+}
+
+export async function sendMakaoInvite(friendUserId: number): Promise<void> {
+  await api.post('/api/makao-online/invite', { friend_user_id: friendUserId })
+}
+
+export async function acceptMakaoInvite(inviteId: number): Promise<MakaoOnlineRoom> {
+  const r = await api.post(`/api/makao-online/incoming/${inviteId}/accept`)
+  return r.data
+}
+
+export async function rejectMakaoInvite(inviteId: number): Promise<void> {
+  await api.post(`/api/makao-online/incoming/${inviteId}/reject`)
+}
+
+export async function cancelMakaoInvite(inviteId: number): Promise<void> {
+  await api.post(`/api/makao-online/outgoing/${inviteId}/cancel`)
+}
+
+export async function getMakaoRoom(roomId: number): Promise<MakaoOnlineRoom> {
+  const r = await api.get(`/api/makao-online/room/${roomId}`)
+  return r.data
+}
+
+export async function syncMakaoRoomState(payload: {
+  roomId: number
+  state: Record<string, unknown>
+  turnUserId: number
+  actionVersion: number
+  winnerUserId?: number | null
+}): Promise<MakaoOnlineRoom> {
+  const r = await api.post(`/api/makao-online/room/${payload.roomId}/sync`, {
+    state: payload.state,
+    turn_user_id: payload.turnUserId,
+    action_version: payload.actionVersion,
+    winner_user_id: payload.winnerUserId || null,
+  })
+  return r.data
+}
+
+export async function leaveMakaoRoom(roomId: number): Promise<void> {
+  await api.post(`/api/makao-online/room/${roomId}/leave`)
 }

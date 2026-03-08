@@ -10,6 +10,64 @@ use Illuminate\Support\Facades\DB;
 
 class OrbitumFriendsController extends Controller
 {
+    public function overview(Request $request)
+    {
+        $me = (int) $request->user()->id;
+
+        $friends = LegacyUser::query()
+            ->from('uzytkownicy as u')
+            ->join('orbitum_friendships as f', function ($join) use ($me) {
+                $join->on('u.id', '=', DB::raw("CASE WHEN f.user_one_id = {$me} THEN f.user_two_id ELSE f.user_one_id END"));
+            })
+            ->where(function ($q) use ($me) {
+                $q->where('f.user_one_id', $me)->orWhere('f.user_two_id', $me);
+            })
+            ->select(['u.id', 'u.imie', 'u.nazwisko', 'u.email', 'u.zdjecie_profilowe'])
+            ->orderBy('u.imie')
+            ->orderBy('u.nazwisko')
+            ->get();
+
+        $incoming = OrbitumFriendRequest::query()
+            ->from('orbitum_friend_requests as r')
+            ->join('uzytkownicy as u', 'u.id', '=', 'r.from_user_id')
+            ->where('r.to_user_id', $me)
+            ->where('r.status', 'pending')
+            ->select([
+                'r.id',
+                'r.from_user_id',
+                'r.created_at',
+                'u.imie',
+                'u.nazwisko',
+                'u.email',
+                'u.zdjecie_profilowe',
+            ])
+            ->orderByDesc('r.created_at')
+            ->get();
+
+        $outgoing = OrbitumFriendRequest::query()
+            ->from('orbitum_friend_requests as r')
+            ->join('uzytkownicy as u', 'u.id', '=', 'r.to_user_id')
+            ->where('r.from_user_id', $me)
+            ->where('r.status', 'pending')
+            ->select([
+                'r.id',
+                'r.to_user_id',
+                'r.created_at',
+                'u.imie',
+                'u.nazwisko',
+                'u.email',
+                'u.zdjecie_profilowe',
+            ])
+            ->orderByDesc('r.created_at')
+            ->get();
+
+        return response()->json([
+            'friends' => $friends,
+            'incoming' => $incoming,
+            'outgoing' => $outgoing,
+        ]);
+    }
+
     public function list(Request $request)
     {
         $me = (int) $request->user()->id;
@@ -100,25 +158,50 @@ class OrbitumFriendsController extends Controller
             ->select(['u.id', 'u.imie', 'u.nazwisko', 'u.email', 'u.zdjecie_profilowe'])
             ->orderBy('u.imie')
             ->limit(20)
+            ->get();
+
+        $ids = $users->pluck('id')->map(fn($v) => (int) $v)->all();
+
+        $friendIds = OrbitumFriendship::query()
+            ->where(function ($q) use ($me, $ids) {
+                $q->where('user_one_id', $me)->whereIn('user_two_id', $ids);
+            })
+            ->orWhere(function ($q) use ($me, $ids) {
+                $q->where('user_two_id', $me)->whereIn('user_one_id', $ids);
+            })
             ->get()
-            ->map(function ($u) use ($me) {
-                $otherId = (int) $u->id;
+            ->map(function ($f) use ($me) {
+                return (int) ((int) $f->user_one_id === $me ? $f->user_two_id : $f->user_one_id);
+            })
+            ->unique()
+            ->values()
+            ->all();
 
-                $friend = $this->areFriends($me, $otherId);
-                $incoming = OrbitumFriendRequest::query()
-                    ->where('from_user_id', $otherId)
-                    ->where('to_user_id', $me)
-                    ->where('status', 'pending')
-                    ->exists();
-                $outgoing = OrbitumFriendRequest::query()
-                    ->where('from_user_id', $me)
-                    ->where('to_user_id', $otherId)
-                    ->where('status', 'pending')
-                    ->exists();
+        $incomingIds = OrbitumFriendRequest::query()
+            ->whereIn('from_user_id', $ids)
+            ->where('to_user_id', $me)
+            ->where('status', 'pending')
+            ->pluck('from_user_id')
+            ->map(fn($v) => (int) $v)
+            ->all();
 
-                $u->friend_state = $friend ? 'friend' : ($incoming ? 'incoming' : ($outgoing ? 'outgoing' : 'none'));
-                return $u;
-            });
+        $outgoingIds = OrbitumFriendRequest::query()
+            ->where('from_user_id', $me)
+            ->whereIn('to_user_id', $ids)
+            ->where('status', 'pending')
+            ->pluck('to_user_id')
+            ->map(fn($v) => (int) $v)
+            ->all();
+
+        $users = $users->map(function ($u) use ($friendIds, $incomingIds, $outgoingIds) {
+            $otherId = (int) $u->id;
+            $u->friend_state = in_array($otherId, $friendIds, true)
+                ? 'friend'
+                : (in_array($otherId, $incomingIds, true)
+                    ? 'incoming'
+                    : (in_array($otherId, $outgoingIds, true) ? 'outgoing' : 'none'));
+            return $u;
+        });
 
         return response()->json($users);
     }

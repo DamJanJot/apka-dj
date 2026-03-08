@@ -83,6 +83,8 @@ export default function Board() {
   const [editingPostBody, setEditingPostBody] = useState('')
   const [editingCommentId, setEditingCommentId] = useState<number | null>(null)
   const [editingCommentBody, setEditingCommentBody] = useState('')
+  const [showComposer, setShowComposer] = useState(false)
+  const [openReactionPickerPostId, setOpenReactionPickerPostId] = useState<number | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -128,6 +130,28 @@ export default function Board() {
     return () => window.clearInterval(id)
   }, [])
 
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.board-reaction-picker-wrap')) {
+        setOpenReactionPickerPostId(null)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenReactionPickerPostId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [])
+
   const refreshFeed = async () => {
     const data = await getBoardFeed()
     setFeed(data)
@@ -154,6 +178,7 @@ export default function Board() {
     try {
       const next = post.my_reaction === emoji ? null : emoji
       await setBoardReaction(Number(post.id), next)
+      setOpenReactionPickerPostId(null)
       await refreshFeed()
     } catch {
       setMessage('Nie udalo sie zapisac reakcji.')
@@ -262,6 +287,7 @@ export default function Board() {
       setBody('')
       setImage(null)
       setSelectedAudience([])
+      setShowComposer(false)
       await refreshFeed()
       setMessage('Post zostal opublikowany.')
     } catch {
@@ -278,69 +304,80 @@ export default function Board() {
       {message && <div className="small" style={{ color: '#7dd3fc', marginBottom: 10 }}>{message}</div>}
 
       <section className="board-compose">
-        <h3 className="board-section-title">Dodaj post</h3>
-
-        <form className="board-compose-form" onSubmit={onSubmit}>
-          <textarea
-            className="board-textarea"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Napisz co nowego..."
-            rows={4}
-          />
-
-          <div className="board-compose-row">
-            <label className="board-label">Widocznosc</label>
-            <select
-              className="board-select"
-              value={visibility}
-              onChange={(e) => setVisibility(e.target.value as PostVisibility)}
-            >
-              <option value="public">Publiczny</option>
-              <option value="friends">Dla znajomych</option>
-              <option value="selected">Dla wybranych znajomych</option>
-            </select>
-          </div>
-
-          {visibility === 'selected' && (
-            <div className="board-audience-wrap">
-              <div className="small muted">Wybierz znajomych ({selectedAudience.length})</div>
-              <div className="board-audience-grid">
-                {friends.map((f) => (
-                  <label key={f.id} className="board-audience-item">
-                    <input
-                      type="checkbox"
-                      checked={selectedAudience.includes(Number(f.id))}
-                      onChange={() => toggleAudience(Number(f.id))}
-                    />
-                    <span>{fullName(f)}</span>
-                  </label>
-                ))}
-                {friends.length === 0 && <div className="small muted">Brak znajomych do wyboru.</div>}
-              </div>
-            </div>
-          )}
-
-          <div className="board-compose-row">
-            <label className="chat-attach-btn" htmlFor="board-image-input">Dodaj zdjecie</label>
-            <input
-              id="board-image-input"
-              className="chat-image-input"
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0] || null
-                setImage(file)
-                e.currentTarget.value = ''
-              }}
-            />
-            {image && <span className="small muted">{image.name}</span>}
-          </div>
-
-          <button className="board-submit" type="submit" disabled={!canSubmit}>
-            {saving ? 'Publikowanie...' : 'Opublikuj'}
+        <div className="board-compose-head">
+          <h3 className="board-section-title">Dodaj post</h3>
+          <button
+            type="button"
+            className="board-compose-toggle"
+            onClick={() => setShowComposer((prev) => !prev)}
+          >
+            {showComposer ? 'Ukryj formularz' : 'Nowy post'}
           </button>
-        </form>
+        </div>
+
+        {showComposer && (
+          <form className="board-compose-form" onSubmit={onSubmit}>
+            <textarea
+              className="board-textarea"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder="Napisz co nowego..."
+              rows={4}
+            />
+
+            <div className="board-compose-row">
+              <label className="board-label">Widocznosc</label>
+              <select
+                className="board-select"
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as PostVisibility)}
+              >
+                <option value="public">Publiczny</option>
+                <option value="friends">Dla znajomych</option>
+                <option value="selected">Dla wybranych znajomych</option>
+              </select>
+            </div>
+
+            {visibility === 'selected' && (
+              <div className="board-audience-wrap">
+                <div className="small muted">Wybierz znajomych ({selectedAudience.length})</div>
+                <div className="board-audience-grid">
+                  {friends.map((f) => (
+                    <label key={f.id} className="board-audience-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedAudience.includes(Number(f.id))}
+                        onChange={() => toggleAudience(Number(f.id))}
+                      />
+                      <span>{fullName(f)}</span>
+                    </label>
+                  ))}
+                  {friends.length === 0 && <div className="small muted">Brak znajomych do wyboru.</div>}
+                </div>
+              </div>
+            )}
+
+            <div className="board-compose-row">
+              <label className="chat-attach-btn" htmlFor="board-image-input">Dodaj zdjecie</label>
+              <input
+                id="board-image-input"
+                className="chat-image-input"
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] || null
+                  setImage(file)
+                  e.currentTarget.value = ''
+                }}
+              />
+              {image && <span className="small muted">{image.name}</span>}
+            </div>
+
+            <button className="board-submit" type="submit" disabled={!canSubmit}>
+              {saving ? 'Publikowanie...' : 'Opublikuj'}
+            </button>
+          </form>
+        )}
       </section>
 
       <section className="board-feed">
@@ -398,18 +435,45 @@ export default function Board() {
 
                 <div className="board-post-actions">
                   <div className="board-reactions-row">
-                    {REACTIONS.map((emoji) => (
+                    {(post.reaction_groups || []).length > 0 &&
+                      (post.reaction_groups || []).map((group) => (
+                        <span key={`${post.id}-${group.emoji}`} className="board-reaction-chip">
+                          <span>{group.emoji}</span>
+                          {Number(group.count || 0) >= 2 && <b>{group.count}</b>}
+                        </span>
+                      ))}
+
+                    <div className="board-reaction-picker-wrap">
                       <button
-                        key={`${post.id}-${emoji}`}
                         type="button"
-                        className={`board-reaction-btn ${post.my_reaction === emoji ? 'active' : ''}`}
-                        disabled={busyReactionPostId === Number(post.id)}
-                        onClick={() => onReaction(post, emoji)}
+                        className="board-reaction-trigger"
+                        onClick={() =>
+                          setOpenReactionPickerPostId((prev) =>
+                            prev === Number(post.id) ? null : Number(post.id)
+                          )
+                        }
+                        aria-label="Dodaj reakcje"
+                        title="Dodaj reakcje"
                       >
-                        {emoji}
+                        🙂
                       </button>
-                    ))}
-                    <span className="small muted">Reakcje: {post.reactions_count || 0}</span>
+
+                      {openReactionPickerPostId === Number(post.id) && (
+                        <div className="board-reaction-picker">
+                          {REACTIONS.map((emoji) => (
+                            <button
+                              key={`${post.id}-${emoji}`}
+                              type="button"
+                              className={`board-reaction-btn ${post.my_reaction === emoji ? 'active' : ''}`}
+                              disabled={busyReactionPostId === Number(post.id)}
+                              onClick={() => onReaction(post, emoji)}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <button

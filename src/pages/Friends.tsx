@@ -1,14 +1,12 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   acceptFriendRequest,
   cancelOutgoingFriendRequest,
   FriendSearchItem,
   FriendUser,
+  getFriendsOverview,
   IncomingFriendRequest,
-  listFriends,
-  listIncomingFriendRequests,
-  listOutgoingFriendRequests,
   OutgoingFriendRequest,
   rejectFriendRequest,
   searchUsersForFriendship,
@@ -40,20 +38,52 @@ export default function Friends() {
 
   const [busyKey, setBusyKey] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const actionMenuAreaRef = useRef<HTMLDivElement | null>(null)
 
   const canSearch = useMemo(() => query.trim().length >= 2, [query])
+  const showIncomingPanel = loading || incoming.length > 0
+  const showOutgoingPanel = loading || outgoing.length > 0
 
   const refreshLists = async () => {
-    const [friendsData, incomingData, outgoingData] = await Promise.all([
-      listFriends(),
-      listIncomingFriendRequests(),
-      listOutgoingFriendRequests(),
-    ])
+    const data = await getFriendsOverview()
 
-    setFriends(friendsData)
-    setIncoming(incomingData)
-    setOutgoing(outgoingData)
+    setFriends(data.friends || [])
+    setIncoming(data.incoming || [])
+    setOutgoing(data.outgoing || [])
   }
+
+  useEffect(() => {
+    if (query.trim().length >= 2) {
+      setSearchOpen(true)
+    }
+  }, [query])
+
+  useEffect(() => {
+    const onMouseDown = (event: MouseEvent) => {
+      if (!openMenuId) return
+      const root = actionMenuAreaRef.current
+      const target = event.target as Node
+      if (root && !root.contains(target)) {
+        setOpenMenuId(null)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpenMenuId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', onMouseDown)
+    document.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', onMouseDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [openMenuId])
 
   useEffect(() => {
     let mounted = true
@@ -61,16 +91,12 @@ export default function Friends() {
     const load = async () => {
       setLoading(true)
       try {
-        const [friendsData, incomingData, outgoingData] = await Promise.all([
-          listFriends(),
-          listIncomingFriendRequests(),
-          listOutgoingFriendRequests(),
-        ])
+        const data = await getFriendsOverview()
 
         if (!mounted) return
-        setFriends(friendsData)
-        setIncoming(incomingData)
-        setOutgoing(outgoingData)
+        setFriends(data.friends || [])
+        setIncoming(data.incoming || [])
+        setOutgoing(data.outgoing || [])
       } catch {
         if (!mounted) return
         setMessage('Nie udalo sie pobrac listy znajomych.')
@@ -125,6 +151,7 @@ export default function Friends() {
     try {
       await action()
       await refreshLists()
+      setOpenMenuId(null)
       if (canSearch) {
         const items = await searchUsersForFriendship(query.trim())
         setSearchItems(items)
@@ -142,136 +169,190 @@ export default function Friends() {
 
       {message && <div className="small" style={{ color: '#fca5a5', marginBottom: 10 }}>{message}</div>}
 
-      <div className="friends-layout">
+      <div className="friends-layout" ref={actionMenuAreaRef}>
         <section className="friends-panel">
-          <h3 className="friends-section-title">Szukaj osob</h3>
-          <form onSubmit={onSearchSubmit}>
-            <input
-              className="friends-search-input"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Wpisz min. 2 znaki (imie, nazwisko, e-mail)"
-            />
-          </form>
+          <div className="friends-panel-head">
+            <h3 className="friends-section-title">Szukaj osob</h3>
+            <button
+              type="button"
+              className="friend-action-btn ghost"
+              onClick={() => setSearchOpen((prev) => !prev)}
+            >
+              {searchOpen ? 'Ukryj' : 'Rozwin'}
+            </button>
+          </div>
 
-          {!canSearch && <div className="small muted">Podaj min. 2 znaki.</div>}
-          {loadingSearch && <div className="small muted">Szukanie...</div>}
-          {canSearch && !loadingSearch && searchItems.length === 0 && (
-            <div className="small muted">Brak wynikow.</div>
+          {searchOpen && (
+            <>
+              <form onSubmit={onSearchSubmit}>
+                <input
+                  className="friends-search-input"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Wpisz min. 2 znaki (imie, nazwisko, e-mail)"
+                />
+              </form>
+
+              {!canSearch && <div className="small muted">Podaj min. 2 znaki.</div>}
+              {loadingSearch && <div className="small muted">Szukanie...</div>}
+              {canSearch && !loadingSearch && searchItems.length === 0 && (
+                <div className="small muted">Brak wynikow.</div>
+              )}
+
+              <div className="friends-list">
+                {searchItems.map((item) => {
+                  const key = `search-${item.id}`
+                  const busy = busyKey === key
+
+                  return (
+                    <div key={item.id} className="friend-row">
+                      <div className="friend-row-user">
+                        <img className="friend-avatar" src={avatarUrl(item.zdjecie_profilowe)} alt="Avatar" />
+                        <div className="friend-meta">
+                          <strong>{fullName(item)}</strong>
+                          <span className="small muted">{item.email || '-'}</span>
+                        </div>
+                      </div>
+
+                      {item.friend_state === 'none' && (
+                        <button
+                          className="friend-action-btn"
+                          disabled={busy}
+                          onClick={() => runAction(key, () => sendFriendRequest(Number(item.id)))}
+                        >
+                          Zapros
+                        </button>
+                      )}
+
+                      {item.friend_state === 'incoming' && <span className="friend-state-pill incoming">Zaprosil Cie</span>}
+                      {item.friend_state === 'outgoing' && <span className="friend-state-pill outgoing">Oczekuje</span>}
+                      {item.friend_state === 'friend' && (
+                        <Link to={`/profile/${item.id}`} className="friend-link-btn">Profil</Link>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </>
           )}
 
-          <div className="friends-list">
-            {searchItems.map((item) => {
-              const key = `search-${item.id}`
-              const busy = busyKey === key
-
-              return (
-                <div key={item.id} className="friend-row">
-                  <div className="friend-row-user">
-                    <img className="friend-avatar" src={avatarUrl(item.zdjecie_profilowe)} alt="Avatar" />
-                    <div className="friend-meta">
-                      <strong>{fullName(item)}</strong>
-                      <span className="small muted">{item.email || '-'}</span>
-                    </div>
-                  </div>
-
-                  {item.friend_state === 'none' && (
-                    <button
-                      className="friend-action-btn"
-                      disabled={busy}
-                      onClick={() => runAction(key, () => sendFriendRequest(Number(item.id)))}
-                    >
-                      Zapros
-                    </button>
-                  )}
-
-                  {item.friend_state === 'incoming' && <span className="friend-state-pill incoming">Zaprosil Cie</span>}
-                  {item.friend_state === 'outgoing' && <span className="friend-state-pill outgoing">Oczekuje</span>}
-                  {item.friend_state === 'friend' && (
-                    <Link to={`/profile/${item.id}`} className="friend-link-btn">Profil</Link>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+          {!searchOpen && <div className="small muted">Sekcja wyszukiwania jest ukryta.</div>}
         </section>
 
-        <section className="friends-panel">
-          <h3 className="friends-section-title">Zaproszenia do Ciebie</h3>
+        {showIncomingPanel && (
+          <section className="friends-panel">
+            <h3 className="friends-section-title">Zaproszenia do Ciebie</h3>
 
-          {loading && <div className="small muted">Ladowanie...</div>}
-          {!loading && incoming.length === 0 && <div className="small muted">Brak zaproszen.</div>}
+            {loading && <div className="small muted">Ladowanie...</div>}
 
-          <div className="friends-list">
-            {incoming.map((req) => {
-              const acceptKey = `incoming-accept-${req.id}`
-              const rejectKey = `incoming-reject-${req.id}`
+            <div className="friends-list">
+              {incoming.map((req) => {
+                const acceptKey = `incoming-accept-${req.id}`
+                const rejectKey = `incoming-reject-${req.id}`
+                const menuId = `incoming-${req.id}`
 
-              return (
-                <div key={req.id} className="friend-row">
-                  <div className="friend-row-user">
-                    <img className="friend-avatar" src={avatarUrl(req.zdjecie_profilowe)} alt="Avatar" />
-                    <div className="friend-meta">
-                      <strong>{fullName(req)}</strong>
-                      <span className="small muted">{req.email || '-'}</span>
+                return (
+                  <div key={req.id} className="friend-row friend-row-collapsible">
+                    <div className="friend-row-main">
+                      <div className="friend-row-user">
+                        <img className="friend-avatar" src={avatarUrl(req.zdjecie_profilowe)} alt="Avatar" />
+                        <div className="friend-meta">
+                          <strong>{fullName(req)}</strong>
+                          <span className="small muted">{req.email || '-'}</span>
+                        </div>
+                      </div>
+
+                      <div className="friend-row-menu-wrap">
+                        <button
+                          type="button"
+                          className="friend-row-menu-toggle"
+                          onClick={() => setOpenMenuId((prev) => (prev === menuId ? null : menuId))}
+                        >
+                          ...
+                        </button>
+                      </div>
                     </div>
+
+                    {openMenuId === menuId && (
+                      <div className="friend-row-menu-inline">
+                        <div className="friend-actions-inline">
+                          <Link to={`/profile/${req.from_user_id}`} className="friend-link-btn">Profil</Link>
+                          <button
+                            className="friend-action-btn"
+                            disabled={busyKey === acceptKey}
+                            onClick={() => runAction(acceptKey, () => acceptFriendRequest(Number(req.id)))}
+                          >
+                            Akceptuj
+                          </button>
+                          <button
+                            className="friend-action-btn ghost"
+                            disabled={busyKey === rejectKey}
+                            onClick={() => runAction(rejectKey, () => rejectFriendRequest(Number(req.id)))}
+                          >
+                            Odrzuc
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
-                  <div className="friend-actions-inline">
-                    <Link to={`/profile/${req.from_user_id}`} className="friend-link-btn">Profil</Link>
-                    <button
-                      className="friend-action-btn"
-                      disabled={busyKey === acceptKey}
-                      onClick={() => runAction(acceptKey, () => acceptFriendRequest(Number(req.id)))}
-                    >
-                      Akceptuj
-                    </button>
-                    <button
-                      className="friend-action-btn ghost"
-                      disabled={busyKey === rejectKey}
-                      onClick={() => runAction(rejectKey, () => rejectFriendRequest(Number(req.id)))}
-                    >
-                      Odrzuc
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
+        {showOutgoingPanel && (
+          <section className="friends-panel">
+            <h3 className="friends-section-title">Twoje wyslane zaproszenia</h3>
 
-        <section className="friends-panel">
-          <h3 className="friends-section-title">Twoje wyslane zaproszenia</h3>
+            {loading && <div className="small muted">Ladowanie...</div>}
 
-          {loading && <div className="small muted">Ladowanie...</div>}
-          {!loading && outgoing.length === 0 && <div className="small muted">Brak wyslanych zaproszen.</div>}
+            <div className="friends-list">
+              {outgoing.map((req) => {
+                const cancelKey = `outgoing-cancel-${req.id}`
+                const menuId = `outgoing-${req.id}`
+                return (
+                  <div key={req.id} className="friend-row friend-row-collapsible">
+                    <div className="friend-row-main">
+                      <div className="friend-row-user">
+                        <img className="friend-avatar" src={avatarUrl(req.zdjecie_profilowe)} alt="Avatar" />
+                        <div className="friend-meta">
+                          <strong>{fullName(req)}</strong>
+                          <span className="small muted">{req.email || '-'}</span>
+                        </div>
+                      </div>
 
-          <div className="friends-list">
-            {outgoing.map((req) => {
-              const cancelKey = `outgoing-cancel-${req.id}`
-              return (
-                <div key={req.id} className="friend-row">
-                  <div className="friend-row-user">
-                    <img className="friend-avatar" src={avatarUrl(req.zdjecie_profilowe)} alt="Avatar" />
-                    <div className="friend-meta">
-                      <strong>{fullName(req)}</strong>
-                      <span className="small muted">{req.email || '-'}</span>
+                      <div className="friend-row-menu-wrap">
+                        <button
+                          type="button"
+                          className="friend-row-menu-toggle"
+                          onClick={() => setOpenMenuId((prev) => (prev === menuId ? null : menuId))}
+                        >
+                          ...
+                        </button>
+                      </div>
                     </div>
-                  </div>
 
-                  <button
-                    className="friend-action-btn ghost"
-                    disabled={busyKey === cancelKey}
-                    onClick={() => runAction(cancelKey, () => cancelOutgoingFriendRequest(Number(req.id)))}
-                  >
-                    Cofnij
-                  </button>
-                  <Link to={`/profile/${req.to_user_id}`} className="friend-link-btn">Profil</Link>
-                </div>
-              )
-            })}
-          </div>
-        </section>
+                    {openMenuId === menuId && (
+                      <div className="friend-row-menu-inline">
+                        <div className="friend-actions-inline">
+                          <button
+                            className="friend-action-btn ghost"
+                            disabled={busyKey === cancelKey}
+                            onClick={() => runAction(cancelKey, () => cancelOutgoingFriendRequest(Number(req.id)))}
+                          >
+                            Cofnij
+                          </button>
+                          <Link to={`/profile/${req.to_user_id}`} className="friend-link-btn">Profil</Link>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
       </div>
 
       <section className="friends-panel" style={{ marginTop: 12 }}>

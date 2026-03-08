@@ -23,7 +23,7 @@ export default function UserMenuContent({ user, onLogout, onClose }: Props) {
 
       <Link className="dropdown-item" to="/profile" onClick={onClose}>Profil</Link>
       <Link className="dropdown-item" to="/profile/edit" onClick={onClose}>Edytuj profil</Link>
-      <Link className="dropdown-item" to="/settings" onClick={onClose}>Ustawienia</Link>
+      <Link className="dropdown-item" to="/settings" onClick={onClose}>Ustawienia konta</Link>
 
       <div className="dropdown-sep" />
 

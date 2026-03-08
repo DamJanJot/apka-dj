@@ -8,10 +8,12 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | undefined>()
+  const [googleInfo, setGoogleInfo] = useState<string | undefined>()
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(undefined)
+    setGoogleInfo(undefined)
     try {
       const ok = await login(email, password)
       if (ok) nav('/dashboard')
@@ -21,12 +23,26 @@ export default function Login() {
   }
 
   return (
-    <div className="container" style={{ height: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-      <form onSubmit={onSubmit} className="widget" style={{ objectPosition: "center", height: 300, width: 360}}>
-        <h1 style={{ marginTop: 0, marginBottom: 32, textAlign: 'center' }}>Logowanie</h1>
-        <div className="col">
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-left">
+          <h1>Witaj ponownie</h1>
+          <p className="muted">
+            Zaloguj sie do panelu i przejdz do Orbitum, Neuronetix oraz Taskory z jednego miejsca.
+          </p>
+
+          <ul className="auth-bullets">
+            <li>Wspolny panel powiadomien i profilu</li>
+            <li>Moduly projektowe w jednym shellu</li>
+            <li>Gotowe miejsce pod logowanie Google OAuth</li>
+          </ul>
+        </div>
+
+        <form onSubmit={onSubmit} className="auth-form">
+          <h2>Logowanie</h2>
+
           <input
-            className="stat"
+            className="auth-input"
             placeholder="E-mail"
             value={email}
             onChange={e => setEmail(e.target.value)}
@@ -34,22 +50,34 @@ export default function Login() {
             autoComplete="email"
           />
           <input
-            className="stat"
-            placeholder="Hasło"
+            className="auth-input"
+            placeholder="Haslo"
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
+
           {error && <div className="small" style={{ color: '#ef4444' }}>{error}</div>}
-          <button className="btn-icon" style={{ width: '100%', padding: 10, border: '1px solid #1f2937', borderRadius: 10 }} type="submit">
+          {googleInfo && <div className="small" style={{ color: '#7dd3fc' }}>{googleInfo}</div>}
+
+          <button className="auth-submit" type="submit">
             Zaloguj
           </button>
-          <div style={{ textAlign: 'center', marginTop: 16 }}>
-            <Link to="/register" style={{ color: '#4c5a70ff' }}>Nie masz konta? Zarejestruj sie</Link>
+
+          <button
+            type="button"
+            className="auth-google"
+            onClick={() => setGoogleInfo('Integracja Google wymaga dopiecia OAuth po stronie backendu (Socialite).')}
+          >
+            Kontynuuj z Google
+          </button>
+
+          <div className="auth-register-link">
+            <Link to="/register">Nie masz konta? Zarejestruj sie</Link>
           </div>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   )
 }

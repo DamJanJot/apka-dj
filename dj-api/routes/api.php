@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use App\Http\Controllers\OrbitumChatController;
 use App\Http\Controllers\OrbitumFriendsController;
+use App\Http\Controllers\OrbitumMakaoOnlineController;
 use App\Http\Controllers\OrbitumPostsController;
 use App\Models\OrbitumFriendship;
 use App\Models\LegacyUser;
@@ -198,6 +199,7 @@ Route::middleware('auth:sanctum')->prefix('chat')->group(function () {
 
 // ---------- ZNAJOMI ----------
 Route::middleware('auth:sanctum')->prefix('friends')->group(function () {
+    Route::get('/overview', [OrbitumFriendsController::class, 'overview']);
     Route::get('/list', [OrbitumFriendsController::class, 'list']);
     Route::get('/incoming', [OrbitumFriendsController::class, 'incoming']);
     Route::get('/outgoing', [OrbitumFriendsController::class, 'outgoing']);
@@ -225,4 +227,17 @@ Route::middleware('auth:sanctum')->prefix('posts')->group(function () {
 
     Route::get('/notifications/mentions', [OrbitumPostsController::class, 'mentionNotifications']);
     Route::post('/notifications/mentions/read-all', [OrbitumPostsController::class, 'markMentionsRead']);
+});
+
+// ---------- MAKAO ONLINE ----------
+Route::middleware('auth:sanctum')->prefix('makao-online')->group(function () {
+    Route::get('/overview', [OrbitumMakaoOnlineController::class, 'overview']);
+    Route::post('/invite', [OrbitumMakaoOnlineController::class, 'invite']);
+    Route::post('/incoming/{id}/accept', [OrbitumMakaoOnlineController::class, 'acceptIncoming']);
+    Route::post('/incoming/{id}/reject', [OrbitumMakaoOnlineController::class, 'rejectIncoming']);
+    Route::post('/outgoing/{id}/cancel', [OrbitumMakaoOnlineController::class, 'cancelOutgoing']);
+
+    Route::get('/room/{roomId}', [OrbitumMakaoOnlineController::class, 'room']);
+    Route::post('/room/{roomId}/sync', [OrbitumMakaoOnlineController::class, 'syncRoomState']);
+    Route::post('/room/{roomId}/leave', [OrbitumMakaoOnlineController::class, 'leaveRoom']);
 });
