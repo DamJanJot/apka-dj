@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Bell } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import {
@@ -13,6 +13,7 @@ import {
   setChatOffline,
 } from '@/api/client'
 import UserMenuContent from './user-menu-content'
+import { detectAppFromPath } from '@/lib/shellSettings'
 
 const MQ_MOBILE = '(max-width: 900px)'
 
@@ -24,8 +25,14 @@ const TITLE: Record<string, string> = {
   '/messages': 'Wiadomosci',
   '/friends': 'Znajomi',
   '/board': 'Tablica',
+  '/neuronetix': 'Neuronetix',
+  '/taskora': 'Taskora',
+  '/optivio': 'Optivio',
+  '/grafiki': 'Grafiki',
   '/profile': 'Profil',
   '/profile/edit': 'Edytuj profil',
+  '/settings': 'Ustawienia konta',
+  '/sidebar-settings': 'Panel boczny',
   '/docs': 'Documentation',
 }
 
@@ -38,9 +45,79 @@ interface User {
 export default function Topbar() {
   const loc = useLocation()
   const nav = useNavigate()
+  const currentApp = detectAppFromPath(loc.pathname)
+
+  const scopedTitle = (() => {
+    if (loc.pathname.startsWith('/neuronetix/')) {
+      if (loc.pathname.endsWith('/dashboard')) return 'Dashboard'
+      if (loc.pathname.endsWith('/messages')) return 'Wiadomosci'
+      if (loc.pathname.endsWith('/friends')) return 'Znajomi'
+      if (loc.pathname.endsWith('/docs')) return 'Documentation'
+    }
+
+    if (loc.pathname.startsWith('/taskora/')) {
+      if (loc.pathname.endsWith('/dashboard')) return 'Dashboard'
+      if (loc.pathname.endsWith('/messages')) return 'Wiadomosci'
+      if (loc.pathname.endsWith('/friends')) return 'Znajomi'
+      if (loc.pathname.endsWith('/docs')) return 'Documentation'
+    }
+
+    if (loc.pathname.startsWith('/optivio/')) {
+      if (loc.pathname.endsWith('/dashboard')) return 'Dashboard'
+      if (loc.pathname.endsWith('/messages')) return 'Wiadomosci'
+      if (loc.pathname.endsWith('/friends')) return 'Znajomi'
+      if (loc.pathname.endsWith('/docs')) return 'Documentation'
+    }
+
+    if (loc.pathname.startsWith('/grafiki/')) {
+      if (loc.pathname.endsWith('/dashboard')) return 'Grafiki'
+      if (loc.pathname.endsWith('/messages')) return 'Wiadomosci'
+      if (loc.pathname.endsWith('/friends')) return 'Znajomi'
+      if (loc.pathname.endsWith('/docs')) return 'Documentation'
+      if (loc.pathname.endsWith('/week')) return 'Tydzien'
+      if (loc.pathname.endsWith('/month')) return 'Miesiac'
+      if (loc.pathname.endsWith('/summary')) return 'Podsumowanie'
+      if (loc.pathname.endsWith('/workplan')) return 'Plan pracy'
+    }
+
+    return null
+  })()
+
+  const projectMeta = useMemo(() => {
+    if (loc.pathname.startsWith('/taskora')) {
+      return { appName: 'Taskora', favicon: '/taskora-logo.png' }
+    }
+
+    if (loc.pathname.startsWith('/neuronetix')) {
+      return { appName: 'Neuronetix', favicon: '/neuronetix-logo.png' }
+    }
+
+    if (loc.pathname.startsWith('/optivio')) {
+      return { appName: 'Optivio', favicon: '/optivio-favicon.ico' }
+    }
+
+    if (loc.pathname.startsWith('/grafiki') || loc.pathname.startsWith('/chic')) {
+      return { appName: 'Grafiki', favicon: '/chic-favicon.ico' }
+    }
+
+    return { appName: 'Orbitum', favicon: '/dj-api/public/uploads/orbitum-logo.png' }
+  }, [loc.pathname])
+
   const title = loc.pathname.startsWith('/profile/') && loc.pathname !== '/profile/edit'
     ? 'Profil uzytkownika'
-    : (TITLE[loc.pathname] ?? 'Orbitum')
+    : (scopedTitle ?? TITLE[loc.pathname] ?? projectMeta.appName)
+
+  useEffect(() => {
+    document.title = `${title} | ${projectMeta.appName}`
+
+    let favicon = document.querySelector("link[rel='icon']") as HTMLLinkElement | null
+    if (!favicon) {
+      favicon = document.createElement('link')
+      favicon.rel = 'icon'
+      document.head.appendChild(favicon)
+    }
+    favicon.href = projectMeta.favicon
+  }, [title, projectMeta])
 
   const [isMobile, setIsMobile] = useState(window.matchMedia(MQ_MOBILE).matches)
   const [collapsed, setCollapsed] = useState(document.body.classList.contains('sidebar-collapsed'))
@@ -142,7 +219,12 @@ export default function Topbar() {
     }
 
     setNotifOpen(false)
-    nav(`/messages?user=${fromUserId}`)
+    if (currentApp === 'orbitum') {
+      nav(`/messages?user=${fromUserId}`)
+      return
+    }
+
+    nav(`/${currentApp}/messages`)
   }
 
   const openBoardFromMention = async () => {
@@ -161,7 +243,12 @@ export default function Topbar() {
     }
 
     setNotifOpen(false)
-    nav('/board')
+    if (currentApp === 'orbitum') {
+      nav('/board')
+      return
+    }
+
+    nav(`/${currentApp}/dashboard`)
   }
 
   const toggleSidebar = () => {

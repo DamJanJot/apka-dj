@@ -7,12 +7,19 @@ import Markets from '@/pages/Markets'
 import Messages from '@/pages/Messages'
 import Friends from '@/pages/Friends'
 import Board from '@/pages/Board'
+import Makao from '@/pages/Makao'
+import Neuronetix from '@/pages/Neuronetix'
+import Taskora from '@/pages/Taskora'
+import Optivio from '@/pages/Optivio'
+import ChicPlanner from '@/pages/ChicPlanner'
 import Docs from '@/pages/Docs'
 import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import Profile from '@/pages/Profile'
 import EditProfile from '@/pages/EditProfile'
 import Settings from '@/pages/Settings'
+import AccountSettings from '@/pages/AccountSettings'
+import AppScopedModule from '@/pages/AppScopedModule'
 
 // komponent chroniący dostęp do podstron wymagających zalogowania
 
@@ -41,13 +48,45 @@ export default function App() {
         <Route path="profile" element={<Profile />} />
         <Route path="profile/:userId" element={<Profile />} />
         <Route path="profile/edit" element={<EditProfile />} />
-        <Route path="settings" element={<Settings />} />
+        <Route path="settings" element={<AccountSettings />} />
+        <Route path="sidebar-settings" element={<Settings />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="news" element={<News />} />
         <Route path="markets" element={<Markets />} />
         <Route path="messages" element={<Messages />} />
         <Route path="friends" element={<Friends />} />
         <Route path="board" element={<Board />} />
+        <Route path="makao" element={<Makao />} />
+        <Route path="neuronetix" element={<Navigate to="/neuronetix/dashboard" replace />} />
+        <Route path="neuronetix/dashboard" element={<Neuronetix />} />
+        <Route path="neuronetix/messages" element={<AppScopedModule appLabel="Neuronetix" moduleLabel="Wiadomosci" />} />
+        <Route path="neuronetix/friends" element={<AppScopedModule appLabel="Neuronetix" moduleLabel="Znajomi" />} />
+        <Route path="neuronetix/docs" element={<Docs />} />
+
+        <Route path="taskora" element={<Navigate to="/taskora/dashboard" replace />} />
+        <Route path="taskora/dashboard" element={<Taskora />} />
+        <Route path="taskora/messages" element={<Messages />} />
+        <Route path="taskora/friends" element={<Friends />} />
+        <Route path="taskora/docs" element={<Docs />} />
+
+        <Route path="optivio" element={<Navigate to="/optivio/dashboard" replace />} />
+        <Route path="optivio/dashboard" element={<Optivio />} />
+        <Route path="optivio/messages" element={<Messages />} />
+        <Route path="optivio/friends" element={<Friends />} />
+        <Route path="optivio/docs" element={<Docs />} />
+
+        <Route path="chic" element={<Navigate to="/grafiki/dashboard" replace />} />
+        <Route path="chic/*" element={<Navigate to="/grafiki/dashboard" replace />} />
+
+        <Route path="grafiki" element={<Navigate to="/grafiki/dashboard" replace />} />
+        <Route path="grafiki/dashboard" element={<ChicPlanner module="dashboard" />} />
+        <Route path="grafiki/week" element={<ChicPlanner module="week" />} />
+        <Route path="grafiki/month" element={<ChicPlanner module="month" />} />
+        <Route path="grafiki/summary" element={<ChicPlanner module="summary" />} />
+        <Route path="grafiki/workplan" element={<ChicPlanner module="workplan" />} />
+        <Route path="grafiki/messages" element={<ChicPlanner module="work" />} />
+        <Route path="grafiki/friends" element={<ChicPlanner module="advisors" />} />
+        <Route path="grafiki/docs" element={<ChicPlanner module="locations" />} />
         <Route path="docs" element={<Docs />} />
       </Route>
 

@@ -1,49 +1,185 @@
-import { NavLink } from 'react-router-dom'
-import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound } from 'lucide-react'
+import { type ReactNode, useEffect, useState } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound, Gamepad2, ChevronDown, Settings } from 'lucide-react'
+import { getFriendsOverview } from '@/api/client'
+import { APP_LABELS, AppKey, detectAppFromPath, isNavVisible, NavItemId } from '@/lib/shellSettings'
+
+type NavDef = {
+  id: NavItemId
+  label: string
+  to: string
+  title: string
+  icon: ReactNode
+}
+
+const NAV_DEFS: NavDef[] = [
+  { id: 'dashboard', label: 'Dashboard', to: '/dashboard', title: 'Dashboard', icon: <LayoutDashboard className="nav-icon" size={18} /> },
+  { id: 'news', label: 'Aktualnosci', to: '/news', title: 'Aktualnosci', icon: <Newspaper className="nav-icon" size={18} /> },
+  { id: 'markets', label: 'Rynki', to: '/markets', title: 'Rynki', icon: <LineChart className="nav-icon" size={18} /> },
+  { id: 'messages', label: 'Wiadomosci', to: '/messages', title: 'Wiadomosci', icon: <MessageSquare className="nav-icon" size={18} /> },
+  { id: 'friends', label: 'Znajomi', to: '/friends', title: 'Znajomi', icon: <UsersRound className="nav-icon" size={18} /> },
+  { id: 'board', label: 'Tablica', to: '/board', title: 'Tablica', icon: <Newspaper className="nav-icon" size={18} /> },
+  { id: 'makao', label: 'Makao', to: '/makao', title: 'Makao', icon: <Gamepad2 className="nav-icon" size={18} /> },
+  { id: 'docs', label: 'Documentation', to: '/docs', title: 'Documentation', icon: <BookText className="nav-icon" size={18} /> },
+]
+
+const APP_NAV_ORDER: Record<AppKey, NavItemId[]> = {
+  orbitum: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+  neuronetix: ['dashboard', 'messages', 'friends', 'docs'],
+  taskora: ['dashboard', 'messages', 'friends', 'docs'],
+  optivio: ['dashboard', 'messages', 'friends', 'docs'],
+  chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+}
+
+const APP_NAV_LABEL_OVERRIDES: Partial<Record<AppKey, Partial<Record<NavItemId, string>>>> = {
+  chic: {
+    dashboard: 'Dashboard',
+    news: 'Tydzien',
+    markets: 'Miesiac',
+    messages: 'Grafik roboczy',
+    friends: 'Doradcy',
+    board: 'Podsumowanie',
+    makao: 'Plan pracy',
+    docs: 'Lokalizacje',
+  },
+}
+
+function toAppPath(app: AppKey, navId: NavItemId): string {
+  if (app === 'orbitum') {
+    return `/${navId}`
+  }
+
+  if (app === 'chic') {
+    if (navId === 'dashboard') return '/grafiki/dashboard'
+    if (navId === 'news') return '/grafiki/week'
+    if (navId === 'markets') return '/grafiki/month'
+    if (navId === 'messages') return '/grafiki/messages'
+    if (navId === 'friends') return '/grafiki/friends'
+    if (navId === 'board') return '/grafiki/summary'
+    if (navId === 'makao') return '/grafiki/workplan'
+    if (navId === 'docs') return '/grafiki/docs'
+  }
+
+  if (navId === 'dashboard') {
+    return `/${app}/dashboard`
+  }
+
+  if (navId === 'messages') {
+    return `/${app}/messages`
+  }
+
+  if (navId === 'friends') {
+    return `/${app}/friends`
+  }
+
+  if (navId === 'docs') {
+    return `/${app}/docs`
+  }
+
+  return `/${app}/dashboard`
+}
 
 export default function Sidebar() {
+  const location = useLocation()
+  const [incomingCount, setIncomingCount] = useState(0)
+  const [projectMenuOpen, setProjectMenuOpen] = useState(false)
+  const currentApp = detectAppFromPath(location.pathname)
+  const isNeuronetix = currentApp === 'neuronetix'
+  const isTaskora = currentApp === 'taskora'
+  const isOptivio = currentApp === 'optivio'
+  const isChic = currentApp === 'chic'
+
+  const brandLogo = isTaskora
+    ? '/taskora-logo.png'
+    : (isNeuronetix ? '/neuronetix-logo.png' : (isOptivio ? '/optivio-logo.png' : (isChic ? '/chic-logo.png' : '/dj-api/public/uploads/orbitum-logo.png')))
+  const brandName = isTaskora ? 'Taskora' : (isNeuronetix ? 'Neuronetix' : (isOptivio ? 'Optivio' : (isChic ? 'Grafiki' : 'Orbitum')))
+
+  const startPath = currentApp === 'orbitum' ? '/dashboard' : `/${currentApp}/dashboard`
+
+  const visibleMainNav = APP_NAV_ORDER[currentApp]
+    .map((id) => NAV_DEFS.find((n) => n.id === id))
+    .filter((item): item is NavDef => !!item)
+    .filter((item) => isNavVisible(currentApp, item.id))
+    .map((item) => ({
+      ...item,
+      to: toAppPath(currentApp, item.id),
+      label: APP_NAV_LABEL_OVERRIDES[currentApp]?.[item.id] || item.label,
+      title: APP_NAV_LABEL_OVERRIDES[currentApp]?.[item.id] || item.title,
+    }))
+
+  useEffect(() => {
+    document.body.dataset.app = currentApp
+  }, [currentApp])
+
+  useEffect(() => {
+    setProjectMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    let mounted = true
+
+    const load = async () => {
+      try {
+        const data = await getFriendsOverview()
+        if (!mounted) return
+        setIncomingCount((data.incoming || []).length)
+      } catch {
+        // noop
+      }
+    }
+
+    load()
+    const id = window.setInterval(load, 20000)
+
+    return () => {
+      mounted = false
+      window.clearInterval(id)
+    }
+  }, [])
+
   return (
     <aside className="sidebar" id="sidebar">
       <div className="brand">
-        <img src="/dj-api/public/uploads/orbitum-logo.png"alt="Logo" className="brand-logo" />
-        <span className="brand-name">Orbitum</span>
+        <button type="button" className="brand-btn" onClick={() => setProjectMenuOpen((v) => !v)}>
+          <img src={brandLogo} alt="Logo" className="brand-logo" />
+          <span className="brand-name">{brandName}</span>
+          <ChevronDown size={14} className="brand-caret" />
+        </button>
+
+        {projectMenuOpen && (
+          <div className="brand-project-menu">
+            <NavLink to="/dashboard" className="brand-project-item">
+              <img src="/dj-api/public/uploads/orbitum-logo.png" alt="Orbitum" className="project-nav-logo" />
+              <span>{APP_LABELS.orbitum}</span>
+            </NavLink>
+            <NavLink to="/neuronetix/dashboard" className="brand-project-item">
+              <img src="/neuronetix-logo.png" alt="Neuronetix" className="project-nav-logo" />
+              <span>{APP_LABELS.neuronetix}</span>
+            </NavLink>
+            <NavLink to="/taskora/dashboard" className="brand-project-item">
+              <img src="/taskora-logo.png" alt="Taskora" className="project-nav-logo" />
+              <span>{APP_LABELS.taskora}</span>
+            </NavLink>
+            <NavLink to="/optivio/dashboard" className="brand-project-item">
+              <img src="/optivio-logo.png" alt="Optivio" className="project-nav-logo" />
+              <span>{APP_LABELS.optivio}</span>
+            </NavLink>
+            <NavLink to="/grafiki/dashboard" className="brand-project-item">
+              <img src="/chic-logo.png" alt="Grafiki" className="project-nav-logo" />
+              <span>{APP_LABELS.chic}</span>
+            </NavLink>
+          </div>
+        )}
       </div>
 
       <nav className="side-nav">
-        <NavLink to="/dashboard" title="Dashboard" className="nav-item">
-          <LayoutDashboard className="nav-icon" size={18} />
-          <span className="link-text">Dashboard</span>
-        </NavLink>
-
-        <NavLink to="/news" title="Aktualności" className="nav-item">
-          <Newspaper className="nav-icon" size={18} />
-          <span className="link-text">Aktualności</span>
-        </NavLink>
-
-        <NavLink to="/markets" title="Rynki" className="nav-item">
-          <LineChart className="nav-icon" size={18} />
-          <span className="link-text">Rynki</span>
-        </NavLink>
-
-        <NavLink to="/messages" title="Wiadomosci" className="nav-item">
-          <MessageSquare className="nav-icon" size={18} />
-          <span className="link-text">Wiadomosci</span>
-        </NavLink>
-
-        <NavLink to="/friends" title="Znajomi" className="nav-item">
-          <UsersRound className="nav-icon" size={18} />
-          <span className="link-text">Znajomi</span>
-        </NavLink>
-
-        <NavLink to="/board" title="Tablica" className="nav-item">
-          <Newspaper className="nav-icon" size={18} />
-          <span className="link-text">Tablica</span>
-        </NavLink>
-
-        <NavLink to="/docs" title="Documentation" className="nav-item">
-          <BookText className="nav-icon" size={18} />
-          <span className="link-text">Documentation</span>
-        </NavLink>
+        {visibleMainNav.map((item) => (
+          <NavLink key={item.id} to={item.id === 'dashboard' ? startPath : item.to} title={item.title} className="nav-item">
+            {item.icon}
+            <span className="link-text">{item.label}</span>
+            {item.id === 'friends' && incomingCount > 0 && <span className="nav-badge">{incomingCount}</span>}
+          </NavLink>
+        ))}
       </nav>
 
       <div className="side-footer">
@@ -54,6 +190,10 @@ export default function Sidebar() {
         <NavLink to="/info" title="Info " className="nav-item">
           <Info  className="nav-icon" size={18} />
           <span className="link-text">Info </span>
+        </NavLink>
+        <NavLink to="/sidebar-settings" title="Panel boczny" className="nav-item nav-item-trailing-icon">
+          <span className="link-text">Panel boczny</span>
+          <Settings className="nav-icon" size={18} />
         </NavLink>
       </div>
     </aside>
