@@ -2,13 +2,15 @@
 
 Monorepo aplikacji webowej z frontendem React + TypeScript (Vite) oraz backendem Laravel (`dj-api`).
 
-Aktualny projekt to shell z kilkoma modulami/aplikacjami:
+## Moduly aplikacji
 
-- Orbitum
-- Neuronetix
-- Taskora
-- Optivio
-- Grafiki (planner, dawne trasy `chic` maja redirect)
+- Orbitum: glowny dashboard, tablica, wiadomosci, znajomi, rynki.
+- Neuronetix: dashboard + podstawowe moduly komunikacji.
+- Taskora: dashboard + integracja pod zadania i zespoly.
+- Optivio: dashboard + moduly komunikacyjne.
+- Grafiki: harmonogram pracy i widoki planowania.
+
+Kazdy modul dziala w jednym shellu na wspolnym systemie logowania.
 
 ## Quick Start
 
@@ -19,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Frontend domyslnie uruchamia sie na `http://localhost:5173`.
+Frontend domyslnie: `http://localhost:5173`
 
 ### 2) Backend (Laravel)
 
@@ -32,42 +34,59 @@ php artisan migrate
 php artisan serve
 ```
 
-Backend domyslnie uruchamia sie na `http://localhost:8000`.
+Backend domyslnie: `http://localhost:8000`
 
-### 3) Uruchomienie obu serwisow naraz
-
-Po instalacji zaleznosci frontendu:
+### 3) Start front + API razem
 
 ```bash
 npm run start:full
 ```
 
-Skrypt uruchamia Vite oraz `php artisan serve` w `dj-api`.
+## Konfiguracja frontendu
 
-## Konfiguracja (.env)
+Plik `.env` (frontend):
 
-Frontend korzysta z:
+```env
+VITE_API_URL=http://localhost:8000
+```
 
-- `VITE_API_URL` - adres backendu, np. `http://localhost:8000`
+Jesli nie ustawisz `VITE_API_URL`, klient API fallbackuje do `http://localhost:8000`.
 
-Domyslnie klient API i tak fallbackuje do `http://localhost:8000`, ale zalecane jest jawne ustawienie zmiennej.
+## Najwazniejsze trasy
 
-## Najwazniejsze trasy (frontend)
+- Orbitum: `/dashboard`, `/news`, `/markets`, `/messages`, `/friends`, `/board`, `/makao`
+- Neuronetix: `/neuronetix/dashboard`, `/neuronetix/messages`, `/neuronetix/friends`, `/neuronetix/docs`
+- Taskora: `/taskora/dashboard`, `/taskora/messages`, `/taskora/friends`, `/taskora/docs`
+- Optivio: `/optivio/dashboard`, `/optivio/messages`, `/optivio/friends`, `/optivio/docs`
+- Grafiki: `/grafiki/dashboard`, `/grafiki/week`, `/grafiki/month`, `/grafiki/summary`, `/grafiki/workplan`, `/grafiki/messages`, `/grafiki/friends`, `/grafiki/docs`
 
-- `/dashboard`, `/news`, `/markets`, `/messages`, `/friends`, `/board`, `/makao`
-- `/neuronetix/dashboard`
-- `/taskora/dashboard`
-- `/optivio/dashboard`
-- `/grafiki/dashboard`
-- `/grafiki/week`
-- `/grafiki/month`
-- `/grafiki/summary`
-- `/grafiki/workplan`
-- `/grafiki/messages`
-- `/grafiki/friends`
-- `/grafiki/docs`
+## Logowanie na Vercel (frontend)
 
-Kompatybilnosc: `/chic` i `/chic/*` przekierowuje na `/grafiki/dashboard`.
+Samo wrzucenie frontendu na Vercel nie wystarczy do logowania. Nie dodajesz loginu/hasla w panelu Vercel.
+
+Potrzebujesz:
+
+1. Dzialajacego backendu Laravel pod publicznym adresem HTTPS.
+2. `VITE_API_URL` w Vercel ustawione na URL backendu (np. `https://api.twoja-domena.pl`).
+3. Poprawnych ustawien CORS i Sanctum po stronie `dj-api`.
+4. Poprawnych cookie/session dla cross-domain (HTTPS).
+
+Typowe ustawienia backendu (env) dla frontu na innej domenie:
+
+```env
+APP_URL=https://api.twoja-domena.pl
+SESSION_DRIVER=database
+SESSION_SECURE_COOKIE=true
+SESSION_SAME_SITE=none
+SANCTUM_STATEFUL_DOMAINS=twoj-frontend.vercel.app
+```
+
+Po zmianach w backendzie wyczysc cache configu:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
 
 ## Struktura repo
 
@@ -88,7 +107,7 @@ Kompatybilnosc: `/chic` i `/chic/*` przekierowuje na `/grafiki/dashboard`.
 |  |- config/
 ```
 
-## Build i preview
+## Build
 
 ```bash
 npm run build
@@ -100,10 +119,5 @@ npm run preview
 - Frontend: React 18, TypeScript, Vite, React Router
 - UI: Radix UI, Lucide Icons
 - Wykresy: Chart.js, Recharts
-- HTTP: Axios (z obsluga XSRF/cookies)
+- HTTP: Axios (XSRF + cookies)
 - Backend: Laravel (PHP)
-
-## Uwagi
-
-- Projekt wymaga poprawnej konfiguracji CORS i cookies po stronie Laravel przy pracy lokalnej frontend-backend.
-- W repo sa assets brandowe dla wielu modulow (Orbitum, Neuronetix, Taskora, Optivio, Grafiki).
