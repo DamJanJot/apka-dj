@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "start:full": "concurrently \"npm run dev\" \"cd dj-api && php artisan serve\""
+    "start:full": "concurrently \"npm run dev\" \"cd dj-api && php artisan serve\"",
+    "deploy:cba": "powershell -ExecutionPolicy Bypass -File ./scripts/build-cba-package.ps1"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.1.10",

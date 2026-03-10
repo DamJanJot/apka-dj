@@ -114,6 +114,20 @@ npm run build
 npm run preview
 ```
 
+## Deploy (Bitbucket + CBA)
+
+Najprostszy powtarzalny flow jest opisany w:
+
+- `DEPLOY-BITBUCKET-CBA.md`
+
+Szybkie pakowanie paczki pod CBA:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-cba-package.ps1
+```
+
+Skrypt odswieza `cba_upload_package/` i tworzy ZIPy do uploadu przez WinSCP.
+
 ## Tech Stack
 
 - Frontend: React 18, TypeScript, Vite, React Router
