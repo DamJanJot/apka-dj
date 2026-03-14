@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound, Gamepad2, ChevronDown, Settings } from 'lucide-react'
+import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound, Gamepad2, ChevronDown, Settings, CalendarDays, KanbanSquare } from 'lucide-react'
 import { getFriendsOverview } from '@/api/client'
 import { APP_LABELS, AppKey, detectAppFromPath, isNavVisible, NavItemId } from '@/lib/shellSettings'
 
@@ -14,6 +14,8 @@ type NavDef = {
 
 const NAV_DEFS: NavDef[] = [
   { id: 'dashboard', label: 'Dashboard', to: '/dashboard', title: 'Dashboard', icon: <LayoutDashboard className="nav-icon" size={18} /> },
+  { id: 'projects', label: 'Projekty', to: '/projects', title: 'Projekty', icon: <KanbanSquare className="nav-icon" size={18} /> },
+  { id: 'calendar', label: 'Kalendarz', to: '/calendar', title: 'Kalendarz', icon: <CalendarDays className="nav-icon" size={18} /> },
   { id: 'news', label: 'Aktualnosci', to: '/news', title: 'Aktualnosci', icon: <Newspaper className="nav-icon" size={18} /> },
   { id: 'markets', label: 'Rynki', to: '/markets', title: 'Rynki', icon: <LineChart className="nav-icon" size={18} /> },
   { id: 'messages', label: 'Wiadomosci', to: '/messages', title: 'Wiadomosci', icon: <MessageSquare className="nav-icon" size={18} /> },
@@ -24,10 +26,10 @@ const NAV_DEFS: NavDef[] = [
 ]
 
 const APP_NAV_ORDER: Record<AppKey, NavItemId[]> = {
-  orbitum: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+  orbitum: ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
   neuronetix: ['dashboard', 'messages', 'friends', 'docs'],
-  taskora: ['dashboard', 'messages', 'friends', 'docs'],
-  optivio: ['dashboard', 'messages', 'friends', 'docs'],
+  taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
+  optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
 }
 
@@ -46,6 +48,7 @@ const APP_NAV_LABEL_OVERRIDES: Partial<Record<AppKey, Partial<Record<NavItemId, 
 
 function toAppPath(app: AppKey, navId: NavItemId): string {
   if (app === 'orbitum') {
+    if (navId === 'calendar') return '/calendar'
     return `/${navId}`
   }
 
@@ -62,6 +65,14 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
 
   if (navId === 'dashboard') {
     return `/${app}/dashboard`
+  }
+
+  if (navId === 'projects') {
+    return `/${app}/projects`
+  }
+
+  if (navId === 'calendar') {
+    return `/${app}/calendar`
   }
 
   if (navId === 'messages') {

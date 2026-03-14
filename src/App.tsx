@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import Layout from '@/layout/Layout'
 import Dashboard from '@/pages/Dashboard'
+import OrbitumCalendar from '@/pages/OrbitumCalendar'
 import News from '@/pages/News'
 import Markets from '@/pages/Markets'
 import Messages from '@/pages/Messages'
@@ -11,6 +12,9 @@ import Makao from '@/pages/Makao'
 import Neuronetix from '@/pages/Neuronetix'
 import Taskora from '@/pages/Taskora'
 import Optivio from '@/pages/Optivio'
+import TaskoraDashboard from '@/pages/TaskoraDashboard'
+import TaskoraProjects from '@/pages/TaskoraProjects'
+import OptivioDashboard from '@/pages/OptivioDashboard'
 import ChicPlanner from '@/pages/ChicPlanner'
 import Docs from '@/pages/Docs'
 import Login from '@/pages/Login'
@@ -51,6 +55,7 @@ export default function App() {
         <Route path="settings" element={<AccountSettings />} />
         <Route path="sidebar-settings" element={<Settings />} />
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="calendar" element={<OrbitumCalendar />} />
         <Route path="news" element={<News />} />
         <Route path="markets" element={<Markets />} />
         <Route path="messages" element={<Messages />} />
@@ -64,13 +69,16 @@ export default function App() {
         <Route path="neuronetix/docs" element={<Docs />} />
 
         <Route path="taskora" element={<Navigate to="/taskora/dashboard" replace />} />
-        <Route path="taskora/dashboard" element={<Taskora />} />
+        <Route path="taskora/dashboard" element={<TaskoraDashboard />} />
+        <Route path="taskora/projects" element={<TaskoraProjects />} />
+        <Route path="taskora/board" element={<Taskora />} />
         <Route path="taskora/messages" element={<Messages />} />
         <Route path="taskora/friends" element={<Friends />} />
         <Route path="taskora/docs" element={<Docs />} />
 
         <Route path="optivio" element={<Navigate to="/optivio/dashboard" replace />} />
-        <Route path="optivio/dashboard" element={<Optivio />} />
+        <Route path="optivio/dashboard" element={<OptivioDashboard />} />
+        <Route path="optivio/projects" element={<Optivio />} />
         <Route path="optivio/messages" element={<Messages />} />
         <Route path="optivio/friends" element={<Friends />} />
         <Route path="optivio/docs" element={<Docs />} />

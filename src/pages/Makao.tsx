@@ -18,6 +18,7 @@ import {
 type Suit = 'hearts' | 'diamonds' | 'clubs' | 'spades'
 type Rank = '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | 'J' | 'Q' | 'K' | 'A'
 type RequestRank = '5' | '6' | '7' | '8' | '9' | '10'
+type SuitNaming = 'classic' | 'regional'
 type Turn = 'player' | 'bot'
 type GameMode = 'bot' | 'local' | 'online'
 
@@ -38,7 +39,14 @@ function suitSymbol(suit: Suit) {
   return '♠'
 }
 
-function suitName(suit: Suit) {
+function suitName(suit: Suit, naming: SuitNaming = 'classic') {
+  if (naming === 'regional') {
+    if (suit === 'hearts') return 'czerwono'
+    if (suit === 'diamonds') return 'krajc'
+    if (suit === 'clubs') return 'dzwonek'
+    return 'wino'
+  }
+
   if (suit === 'hearts') return 'kier'
   if (suit === 'diamonds') return 'karo'
   if (suit === 'clubs') return 'trefl'
@@ -140,7 +148,7 @@ function canStackAttack(card: Card, top: Card | null) {
   if (!top) return false
   if (!isAttackCard(card)) return false
   if (!isAttackCard(top)) return false
-  return true
+  return card.rank === top.rank || card.suit === top.suit
 }
 
 function canPlayCard(args: {
@@ -148,11 +156,11 @@ function canPlayCard(args: {
   top: Card | null
   activeSuit: Suit | null
   pendingDraw: number
-  pendingSkip: boolean
+  pendingSkipCount: number
   pendingRequest: RequestRank | null
   queenOpenTurn: boolean
 }) {
-  const { card, top, activeSuit, pendingDraw, pendingSkip, pendingRequest, queenOpenTurn } = args
+  const { card, top, activeSuit, pendingDraw, pendingSkipCount, pendingRequest, queenOpenTurn } = args
 
   if (!top) return true
   if (isQueenSpades(card)) return true
@@ -161,7 +169,7 @@ function canPlayCard(args: {
     return canStackAttack(card, top)
   }
 
-  if (pendingSkip) {
+  if (pendingSkipCount > 0) {
     return card.rank === '4'
   }
 
@@ -223,7 +231,7 @@ export default function Makao() {
 
   const [activeSuit, setActiveSuit] = useState<Suit | null>(null)
   const [pendingDraw, setPendingDraw] = useState(0)
-  const [pendingSkip, setPendingSkip] = useState(false)
+  const [pendingSkipCount, setPendingSkipCount] = useState(0)
   const [pendingRequest, setPendingRequest] = useState<RequestRank | null>(null)
   const [queenOpenTurn, setQueenOpenTurn] = useState(false)
 
@@ -233,6 +241,18 @@ export default function Makao() {
 
   const [awaitingSuitPick, setAwaitingSuitPick] = useState(false)
   const [awaitingRequestPick, setAwaitingRequestPick] = useState(false)
+  const [selectedPlayerCards, setSelectedPlayerCards] = useState<string[]>([])
+  const [selectedBotCards, setSelectedBotCards] = useState<string[]>([])
+  const [suitNaming, setSuitNaming] = useState<SuitNaming>(() => {
+    if (typeof window === 'undefined') return 'classic'
+    const raw = window.localStorage.getItem('makao.suitNaming.v1')
+    return raw === 'regional' ? 'regional' : 'classic'
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('makao.suitNaming.v1', suitNaming)
+  }, [suitNaming])
 
   const topCard = useMemo(() => {
     if (discardPile.length === 0) return null
@@ -273,7 +293,8 @@ export default function Makao() {
       player_two_hand: amPlayerOne ? botHand : playerHand,
       active_suit: activeSuit,
       pending_draw: pendingDraw,
-      pending_skip: pendingSkip,
+      pending_skip: pendingSkipCount > 0,
+      pending_skip_count: pendingSkipCount,
       pending_request: pendingRequest,
       queen_open_turn: queenOpenTurn,
       awaiting_suit_pick: awaitingSuitPick,
@@ -303,7 +324,7 @@ export default function Makao() {
 
     setActiveSuit((raw.active_suit as Suit | null) || null)
     setPendingDraw(Number(raw.pending_draw || 0))
-    setPendingSkip(Boolean(raw.pending_skip))
+    setPendingSkipCount(Number(raw.pending_skip_count || (raw.pending_skip ? 1 : 0)))
     setPendingRequest((raw.pending_request as RequestRank | null) || null)
     setQueenOpenTurn(Boolean(raw.queen_open_turn))
     setAwaitingSuitPick(Boolean(raw.awaiting_suit_pick))
@@ -342,7 +363,7 @@ export default function Makao() {
 
     setActiveSuit(firstDiscard?.suit || null)
     setPendingDraw(0)
-    setPendingSkip(false)
+    setPendingSkipCount(0)
     setPendingRequest(null)
     setQueenOpenTurn(false)
 
@@ -350,6 +371,8 @@ export default function Makao() {
     setWinner(null)
     setAwaitingSuitPick(false)
     setAwaitingRequestPick(false)
+    setSelectedPlayerCards([])
+    setSelectedBotCards([])
     setLogs([])
 
     addLog(`Nowa gra (${mode === 'bot' ? 'vs bot' : mode === 'online' ? 'online ze znajomym' : 'lokalnie ze znajomym'}).`)
@@ -494,7 +517,7 @@ export default function Makao() {
     }
 
     sync()
-  }, [pendingOnlineSync, gameMode, onlineRoom, user?.id, deck, discardPile, playerHand, botHand, activeSuit, pendingDraw, pendingSkip, pendingRequest, queenOpenTurn, awaitingSuitPick, awaitingRequestPick, winner, logs, turn])
+  }, [pendingOnlineSync, gameMode, onlineRoom, user?.id, deck, discardPile, playerHand, botHand, activeSuit, pendingDraw, pendingSkipCount, pendingRequest, queenOpenTurn, awaitingSuitPick, awaitingRequestPick, winner, logs, turn])
 
   const getHand = (actor: Turn) => (actor === 'player' ? playerHand : botHand)
 
@@ -513,21 +536,20 @@ export default function Makao() {
     setHand(actor, [...getHand(actor), ...draw.drawn])
     addLog(`${actorLabel(actor)} dobiera ${draw.drawn.length} kart.`)
     setPendingDraw(0)
+    if (actor === 'player') {
+      setSelectedPlayerCards([])
+    } else {
+      setSelectedBotCards([])
+    }
     setTurn(otherTurn(actor))
   }
 
-  const playCardBy = (actor: Turn, card: Card, pairMode = false) => {
+  const playCardBy = (actor: Turn, cardsToPlay: Card[]) => {
     if (!topCard || winner) return
 
     const actorHand = getHand(actor)
-    let cardsToPlay = [card]
 
-    if (pairMode && pendingRequest && REQUEST_RANKS.includes(pendingRequest)) {
-      const sameRequested = actorHand.filter((c) => c.rank === pendingRequest)
-      if (sameRequested.length >= 2) {
-        cardsToPlay = sameRequested.slice(0, 2)
-      }
-    }
+    if (cardsToPlay.length === 0) return
 
     const playedIds = cardsToPlay.map((c) => c.id)
     const nextHand = removeCardsByIds(actorHand, playedIds)
@@ -536,6 +558,11 @@ export default function Makao() {
 
     setHand(actor, nextHand)
     setDiscardPile(nextDiscard)
+    if (actor === 'player') {
+      setSelectedPlayerCards([])
+    } else {
+      setSelectedBotCards([])
+    }
     addLog(`${actorLabel(actor)} zagrywa ${cardsToPlay.map(fullCardName).join(' + ')}.`)
 
     if (nextHand.length === 0) {
@@ -546,7 +573,7 @@ export default function Makao() {
 
     if (isQueenSpades(leadCard)) {
       setPendingDraw(0)
-      setPendingSkip(false)
+      setPendingSkipCount(0)
       setPendingRequest(null)
       setActiveSuit(null)
       setQueenOpenTurn(true)
@@ -558,7 +585,7 @@ export default function Makao() {
     setQueenOpenTurn(false)
 
     if (pendingDraw > 0) {
-      const added = attackValue(leadCard)
+      const added = cardsToPlay.reduce((sum, c) => sum + attackValue(c), 0)
       setPendingDraw((prev) => prev + added)
       setActiveSuit(leadCard.suit)
       setTurn(otherTurn(actor))
@@ -566,11 +593,12 @@ export default function Makao() {
       return
     }
 
-    if (pendingSkip) {
-      setPendingSkip(true)
+    if (pendingSkipCount > 0) {
+      const addedSkips = cardsToPlay.filter((c) => c.rank === '4').length
+      setPendingSkipCount((prev) => prev + addedSkips)
       setActiveSuit(leadCard.suit)
       setTurn(otherTurn(actor))
-      addLog('Stop 4 zostal odbity kolejnym 4.')
+      addLog(`Stop 4 zostal odbity. Czekanie rosnie do ${pendingSkipCount + addedSkips} kolejek.`)
       return
     }
 
@@ -580,13 +608,12 @@ export default function Makao() {
           const req = pickBestRequest(nextHand)
           setPendingRequest(req)
           setActiveSuit(leadCard.suit)
-          setTurn(actor)
-          addLog(`Bot przezada i ustawia ${req}, po czym gra dalej.`)
+          setTurn(otherTurn(actor))
+          addLog(`Bot przezada i ustawia ${req}. Teraz odpowiada przeciwnik.`)
         } else {
           setAwaitingRequestPick(true)
-          setPendingRequest(null)
           setActiveSuit(leadCard.suit)
-          addLog('Walet przezada. Wybierz nowa wartosc 5-10 i zagrasz jeszcze raz.')
+          addLog('Walet przezada. Wybierz nowa wartosc 5-10 albo brak zadania.')
         }
         return
       }
@@ -601,7 +628,7 @@ export default function Makao() {
     }
 
     if (isAttackCard(leadCard)) {
-      const drawNeed = attackValue(leadCard)
+      const drawNeed = cardsToPlay.reduce((sum, c) => sum + attackValue(c), 0)
       setPendingDraw(drawNeed)
       setActiveSuit(leadCard.suit)
       setTurn(otherTurn(actor))
@@ -610,10 +637,11 @@ export default function Makao() {
     }
 
     if (leadCard.rank === '4') {
-      setPendingSkip(true)
+      const skipCount = cardsToPlay.filter((c) => c.rank === '4').length
+      setPendingSkipCount(skipCount)
       setActiveSuit(leadCard.suit)
       setTurn(otherTurn(actor))
-      addLog('Stop: kolejny gracz czeka kolejke lub zagrywa 4.')
+      addLog(`Stop: kolejny gracz czeka ${skipCount} kolejk${skipCount === 1 ? 'e' : 'i'} lub zagrywa 4.`)
       return
     }
 
@@ -636,13 +664,12 @@ export default function Makao() {
         const req = pickBestRequest(nextHand)
         setPendingRequest(req)
         setActiveSuit(leadCard.suit)
-        setTurn(actor)
-        addLog(`Walet zadaje ${req}. Bot gra jeszcze raz.`)
+        setTurn(otherTurn(actor))
+        addLog(`Walet zadaje ${req}. Najpierw odpowiada przeciwnik.`)
       } else {
         setAwaitingRequestPick(true)
-        setPendingRequest(null)
         setActiveSuit(leadCard.suit)
-        addLog('Walet zadaje karte 5-10. Wybierz wartosc i zagrasz jeszcze raz.')
+        addLog('Walet zadaje karte 5-10. Wybierz wartosc albo brak zadania.')
       }
       return
     }
@@ -658,34 +685,91 @@ export default function Makao() {
     setTurn(otherTurn(actor))
   }
 
-  const onPlayerCardClick = (card: Card) => {
-    if (turn !== 'player' || awaitingSuitPick || awaitingRequestPick || winner || !topCard) return
-    if (!canPlayCard({ card, top: topCard, activeSuit, pendingDraw, pendingSkip, pendingRequest, queenOpenTurn })) return
-    playCardBy('player', card, false)
-    if (gameMode === 'online') setPendingOnlineSync(true)
+  const getSelectedCards = (actor: Turn) => {
+    const ids = actor === 'player' ? selectedPlayerCards : selectedBotCards
+    const hand = getHand(actor)
+    if (ids.length === 0) return []
+    const idSet = new Set(ids)
+    return hand.filter((card) => idSet.has(card.id))
   }
 
-  const onSecondPlayerCardClick = (card: Card) => {
-    if (gameMode !== 'local') return
-    if (turn !== 'bot' || awaitingSuitPick || awaitingRequestPick || winner || !topCard) return
-    if (!canPlayCard({ card, top: topCard, activeSuit, pendingDraw, pendingSkip, pendingRequest, queenOpenTurn })) return
-    playCardBy('bot', card, false)
+  const getPlayableSelection = (actor: Turn) => {
+    if (!topCard) return [] as Card[]
+
+    const selected = getSelectedCards(actor)
+    if (selected.length === 0) return [] as Card[]
+
+    const sameRank = selected.every((c) => c.rank === selected[0].rank)
+    if (!sameRank) return [] as Card[]
+
+    const lead = selected[selected.length - 1]
+    const leadPlayable = canPlayCard({
+      card: lead,
+      top: topCard,
+      activeSuit,
+      pendingDraw,
+      pendingSkipCount,
+      pendingRequest,
+      queenOpenTurn,
+    })
+
+    if (!leadPlayable) return [] as Card[]
+
+    if (pendingRequest) {
+      if (selected[0].rank !== pendingRequest && selected[0].rank !== 'J') {
+        return [] as Card[]
+      }
+      return selected
+    }
+
+    return selected
   }
 
-  const onPlayRequestPair = () => {
-    if (!pendingRequest || turn !== 'player' || awaitingSuitPick || awaitingRequestPick || winner || !topCard) return
-    const pair = playerHand.filter((card) => card.rank === pendingRequest)
-    if (pair.length < 2) return
-    playCardBy('player', pair[0], true)
-    if (gameMode === 'online') setPendingOnlineSync(true)
+  const toggleCardSelection = (actor: Turn, card: Card) => {
+    if (!topCard || winner || awaitingSuitPick || awaitingRequestPick) return
+
+    const isActorsTurn = turn === actor
+    if (!isActorsTurn) return
+
+    const playableAsSingle = canPlayCard({
+      card,
+      top: topCard,
+      activeSuit,
+      pendingDraw,
+      pendingSkipCount,
+      pendingRequest,
+      queenOpenTurn,
+    })
+
+    if (!playableAsSingle) return
+
+    const setter = actor === 'player' ? setSelectedPlayerCards : setSelectedBotCards
+
+    setter((prev) => {
+      if (prev.includes(card.id)) {
+        return prev.filter((id) => id !== card.id)
+      }
+
+      const selected = getHand(actor).filter((h) => prev.includes(h.id))
+      if (selected.length > 0 && selected[0].rank !== card.rank) {
+        return [card.id]
+      }
+
+      return [...prev, card.id]
+    })
   }
 
-  const onPlayRequestPairSecond = () => {
-    if (gameMode !== 'local') return
-    if (!pendingRequest || turn !== 'bot' || awaitingSuitPick || awaitingRequestPick || winner || !topCard) return
-    const pair = botHand.filter((card) => card.rank === pendingRequest)
-    if (pair.length < 2) return
-    playCardBy('bot', pair[0], true)
+  const onThrowSelected = (actor: Turn) => {
+    if (!topCard || winner || awaitingSuitPick || awaitingRequestPick) return
+    if (turn !== actor) return
+
+    const selected = getPlayableSelection(actor)
+    if (selected.length === 0) return
+
+    playCardBy(actor, selected)
+    if (gameMode === 'online' && actor === 'player') {
+      setPendingOnlineSync(true)
+    }
   }
 
   const onPickSuit = (suit: Suit) => {
@@ -697,12 +781,17 @@ export default function Makao() {
     if (gameMode === 'online' && turn === 'player') setPendingOnlineSync(true)
   }
 
-  const onPickRequest = (rank: RequestRank) => {
+  const onPickRequest = (rank: RequestRank | null) => {
     if (!awaitingRequestPick || winner) return
     setPendingRequest(rank)
     setAwaitingRequestPick(false)
-    setTurn(turn)
-    addLog(`${actorLabel(turn)} zadaje ${rank} i zachowuje kolejke.`)
+    if (rank) {
+      setTurn(otherTurn(turn))
+      addLog(`${actorLabel(turn)} zadaje ${rank}. Teraz przeciwnik musi zagrac ${rank} albo dobrac.`)
+    } else {
+      setTurn(otherTurn(turn))
+      addLog(`${actorLabel(turn)} nie zadaje nic. Dalej gramy do koloru waleta.`)
+    }
     if (gameMode === 'online' && turn === 'player') setPendingOnlineSync(true)
   }
 
@@ -711,8 +800,8 @@ export default function Makao() {
 
     const shouldSync = gameMode === 'online' && turn === 'player'
 
-    if (pendingSkip) {
-      setPendingSkip(false)
+    if (pendingSkipCount > 0) {
+      setPendingSkipCount((prev) => Math.max(0, prev - 1))
       setTurn(otherTurn(turn))
       addLog(`${actorLabel(turn)} czeka kolejke.`)
       if (shouldSync) setPendingOnlineSync(true)
@@ -727,7 +816,7 @@ export default function Makao() {
 
     if (pendingRequest) {
       forceDrawAndPass(turn, 1)
-      setPendingRequest(null)
+      addLog(`Zadanie ${pendingRequest} pozostaje aktywne.`)
       if (shouldSync) setPendingOnlineSync(true)
       return
     }
@@ -758,7 +847,7 @@ export default function Makao() {
         top: topCard,
         activeSuit,
         pendingDraw,
-        pendingSkip,
+        pendingSkipCount,
         pendingRequest,
         queenOpenTurn,
       }))
@@ -769,15 +858,15 @@ export default function Makao() {
       }
 
       if (pendingRequest) {
-        const pairReq = botHand.filter((card) => card.rank === pendingRequest)
-        if (pairReq.length >= 2) {
-          playCardBy('bot', pairReq[0], true)
+        const jCard = botHand.find((card) => card.rank === 'J')
+        if (jCard && Math.random() < 0.45) {
+          playCardBy('bot', [jCard])
           return
         }
       }
 
       const chosen = playable[Math.floor(Math.random() * playable.length)]
-      playCardBy('bot', chosen)
+      playCardBy('bot', [chosen])
     }, 650)
 
     return () => window.clearTimeout(id)
@@ -791,7 +880,7 @@ export default function Makao() {
     botHand,
     activeSuit,
     pendingDraw,
-    pendingSkip,
+    pendingSkipCount,
     pendingRequest,
     queenOpenTurn,
   ])
@@ -807,7 +896,7 @@ export default function Makao() {
       if (awaitingSuitPick && turn === 'player') return 'Wybierz kolor po asie.'
       if (awaitingRequestPick && turn === 'player') return 'Wybierz zadanie waleta (5-10).'
       if (pendingDraw > 0 && turn === 'player') return `Atak aktywny: dobierz ${pendingDraw} albo sie bron.`
-      if (pendingSkip && turn === 'player') return 'Aktywna 4: czekasz kolejke albo odbijasz 4.'
+      if (pendingSkipCount > 0 && turn === 'player') return `Aktywna 4: czekasz ${pendingSkipCount} kolejk${pendingSkipCount === 1 ? 'e' : 'i'} albo odbijasz 4.`
       if (pendingRequest && turn === 'player') return `Aktywne zadanie: ${pendingRequest}.`
       return turn === 'player' ? 'Twoja tura online.' : 'Tura znajomego.'
     }
@@ -817,13 +906,13 @@ export default function Makao() {
     if (awaitingSuitPick) return `${actorLabel(turn)} wybiera kolor po asie.`
     if (awaitingRequestPick) return `${actorLabel(turn)} wybiera zadanie waleta (5-10).`
     if (pendingDraw > 0) return `${actorLabel(turn)}: aktywny atak ${pendingDraw}.`
-    if (pendingSkip) return `${actorLabel(turn)}: aktywne zatrzymanie 4.`
+    if (pendingSkipCount > 0) return `${actorLabel(turn)}: aktywne zatrzymanie 4 (${pendingSkipCount}).`
     if (pendingRequest) return `${actorLabel(turn)}: aktywne zadanie ${pendingRequest}.`
     return `${actorLabel(turn)} wykonuje ruch.`
-  }, [winner, gameMode, isOnlineRoomReady, awaitingSuitPick, awaitingRequestPick, pendingDraw, pendingSkip, pendingRequest, turn])
+  }, [winner, gameMode, isOnlineRoomReady, awaitingSuitPick, awaitingRequestPick, pendingDraw, pendingSkipCount, pendingRequest, turn])
 
-  const playerPairAvailable = !!pendingRequest && playerHand.filter((c) => c.rank === pendingRequest).length >= 2
-  const secondPairAvailable = !!pendingRequest && botHand.filter((c) => c.rank === pendingRequest).length >= 2
+  const playerSelection = getPlayableSelection('player')
+  const botSelection = getPlayableSelection('bot')
 
   const onlineTurnOwnerLabel = useMemo(() => {
     if (!onlineRoom?.turn_user_id || !user?.id) return 'nieznana'
@@ -845,6 +934,23 @@ export default function Makao() {
       <div className="makao-header-row">
         <h1 className="makao-title">Makao</h1>
         <div className="makao-top-actions">
+          <div className="makao-mode-switch" role="group" aria-label="Nazewnictwo kolorow">
+            <button
+              type="button"
+              className={`makao-mode-btn ${suitNaming === 'classic' ? 'active' : ''}`}
+              onClick={() => setSuitNaming('classic')}
+            >
+              Kier/Karo/Trefl/Pik
+            </button>
+            <button
+              type="button"
+              className={`makao-mode-btn ${suitNaming === 'regional' ? 'active' : ''}`}
+              onClick={() => setSuitNaming('regional')}
+            >
+              Czerwono/Krajc/Dzwonek/Wino
+            </button>
+          </div>
+
           <div className="makao-mode-switch" role="group" aria-label="Tryb gry">
             <button
               type="button"
@@ -991,18 +1097,6 @@ export default function Makao() {
           {(gameMode !== 'online' || isOnlineRoomReady) && (
             <>
 
-          {turn === 'player' && playerPairAvailable && (
-            <button type="button" className="makao-pair-btn" onClick={onPlayRequestPair}>
-              Zagraj pare {pendingRequest}
-            </button>
-          )}
-
-          {gameMode === 'local' && turn === 'bot' && secondPairAvailable && (
-            <button type="button" className="makao-pair-btn" onClick={onPlayRequestPairSecond}>
-              Gracz 2: zagraj pare {pendingRequest}
-            </button>
-          )}
-
           <button
             type="button"
             className="makao-rules-toggle"
@@ -1015,11 +1109,11 @@ export default function Makao() {
             <div className="makao-rules">
               <ul>
                 <li>Nie startujemy od karty funkcyjnej: palimy az wyjdzie 5-10.</li>
-                <li>2 i 3 sa waleczne, dokladane po kolorze/randze do sumy dobrania.</li>
-                <li>4 zatrzymuje kolejke (mozna odbic dowolna 4).</li>
+                <li>2, 3 i K sa waleczne: w walce dokladasz po kolorze lub figurze.</li>
+                <li>4 zatrzymuje kolejki i sumuje oczekiwanie, gdy jest odbijana kolejnymi 4.</li>
                 <li>A zmienia kolor.</li>
-                <li>J zadaje 5-10; podczas zadania mozna przezadac waletem.</li>
-                <li>Podczas zadania wolno zagrac pare tej samej liczby (np. 5 + 5).</li>
+                <li>J zadaje 5-10; podczas zadania mozna przezadac J albo odpuscic zadanie.</li>
+                <li>Moesz rzucic kilka kart tej samej figury, zaznaczajac je przed rzutem.</li>
                 <li>Q♠ anuluje wszystko pod soba i otwiera dowolna karte.</li>
                 <li>K♠ robi jedna kolejke wstecz i wraca do normalnej kolejnosci.</li>
               </ul>
@@ -1054,7 +1148,19 @@ export default function Makao() {
           ) : (
             <>
           <div className="makao-opponent-row">
-            <span className="small muted">{gameMode === 'local' ? 'Reka gracza 2' : gameMode === 'online' ? 'Reka znajomego (online)' : 'Przeciwnik (bot)'}</span>
+            <div className="makao-player-head">
+              <span className="small muted">{gameMode === 'local' ? 'Reka gracza 2' : gameMode === 'online' ? 'Reka znajomego (online)' : 'Przeciwnik (bot)'}</span>
+              {gameMode === 'local' && (
+                <button
+                  type="button"
+                  className="makao-draw-btn"
+                  onClick={() => onThrowSelected('bot')}
+                  disabled={turn !== 'bot' || botSelection.length === 0 || awaitingSuitPick || awaitingRequestPick || !!winner}
+                >
+                  Rzuc {botSelection.length > 0 ? `(${botSelection.length})` : ''}
+                </button>
+              )}
+            </div>
             <div className="makao-opponent-cards">
               {(gameMode === 'bot' || gameMode === 'online') && botHand.map((card) => (
                 <div key={card.id} className="makao-card-face down" />
@@ -1066,20 +1172,25 @@ export default function Makao() {
                   top: topCard,
                   activeSuit,
                   pendingDraw,
-                  pendingSkip,
+                  pendingSkipCount,
                   pendingRequest,
                   queenOpenTurn,
                 }) && turn === 'bot' && !awaitingSuitPick && !awaitingRequestPick && !winner
+
+                const selected = selectedBotCards.includes(card.id)
 
                 return (
                   <button
                     key={card.id}
                     type="button"
-                    className={`makao-card-face ${cardColorClass(card)} ${playable ? 'playable' : ''}`}
-                    disabled={!playable}
-                    onClick={() => onSecondPlayerCardClick(card)}
+                    className={`makao-card-face ${cardColorClass(card)} ${playable ? 'playable' : ''} ${selected ? 'selected' : ''}`}
+                    disabled={!playable && !selected}
+                    onClick={() => toggleCardSelection('bot', card)}
                   >
-                    {fullCardName(card)}
+                    <span className="makao-card-content">
+                      <span className="makao-card-rank">{card.rank}</span>
+                      <span className="makao-card-suit">{suitSymbol(card.suit)}</span>
+                    </span>
                   </button>
                 )
               })}
@@ -1095,9 +1206,14 @@ export default function Makao() {
             <div className="makao-pile">
               <div className="small muted">Stol</div>
               <div className={`makao-card-face ${topCard ? cardColorClass(topCard) : ''}`}>
-                {topCard ? fullCardName(topCard) : '-'}
+                {topCard ? (
+                  <span className="makao-card-content">
+                    <span className="makao-card-rank">{topCard.rank}</span>
+                    <span className="makao-card-suit">{suitSymbol(topCard.suit)}</span>
+                  </span>
+                ) : '-'}
               </div>
-              <div className="small muted">Aktywny kolor: {activeSuit ? suitName(activeSuit) : '-'}</div>
+              <div className="small muted">Aktywny kolor: {activeSuit ? suitName(activeSuit, suitNaming) : '-'}</div>
             </div>
           </div>
 
@@ -1112,7 +1228,7 @@ export default function Makao() {
                     className="makao-suit-btn"
                     onClick={() => onPickSuit(suit)}
                   >
-                    {suitSymbol(suit)} {suitName(suit)}
+                    {suitSymbol(suit)} {suitName(suit, suitNaming)}
                   </button>
                 ))}
               </div>
@@ -1133,6 +1249,13 @@ export default function Makao() {
                     {rank}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  className="makao-suit-btn"
+                  onClick={() => onPickRequest(null)}
+                >
+                  Brak zadania
+                </button>
               </div>
             </div>
           )}
@@ -1140,19 +1263,35 @@ export default function Makao() {
           <div className="makao-player-row">
             <div className="makao-player-head">
               <span className="small muted">Reka gracza 1</span>
-              <button
-                type="button"
-                className="makao-draw-btn"
-                onClick={onDrawClick}
-                disabled={
-                  !!winner ||
-                  awaitingSuitPick ||
-                  awaitingRequestPick ||
-                  ((gameMode === 'bot' || gameMode === 'online') && turn !== 'player')
-                }
-              >
-                {pendingSkip ? 'Czekaj kolejke' : pendingDraw > 0 ? `Dobierz ${pendingDraw}` : pendingRequest ? 'Dobierz 1' : 'Dobierz'}
-              </button>
+              <div className="makao-player-head-actions">
+                <button
+                  type="button"
+                  className="makao-draw-btn"
+                  onClick={() => onThrowSelected('player')}
+                  disabled={
+                    turn !== 'player' ||
+                    playerSelection.length === 0 ||
+                    awaitingSuitPick ||
+                    awaitingRequestPick ||
+                    !!winner
+                  }
+                >
+                  Rzuc {playerSelection.length > 0 ? `(${playerSelection.length})` : ''}
+                </button>
+                <button
+                  type="button"
+                  className="makao-draw-btn"
+                  onClick={onDrawClick}
+                  disabled={
+                    !!winner ||
+                    awaitingSuitPick ||
+                    awaitingRequestPick ||
+                    ((gameMode === 'bot' || gameMode === 'online') && turn !== 'player')
+                  }
+                >
+                  {pendingSkipCount > 0 ? `Czekaj (${pendingSkipCount})` : pendingDraw > 0 ? `Dobierz ${pendingDraw}` : pendingRequest ? 'Dobierz 1' : 'Dobierz'}
+                </button>
+              </div>
             </div>
             <div className="makao-player-cards">
               {playerHand.map((card) => {
@@ -1161,20 +1300,25 @@ export default function Makao() {
                   top: topCard,
                   activeSuit,
                   pendingDraw,
-                  pendingSkip,
+                  pendingSkipCount,
                   pendingRequest,
                   queenOpenTurn,
                 }) && turn === 'player' && !awaitingSuitPick && !awaitingRequestPick && !winner
+
+                const selected = selectedPlayerCards.includes(card.id)
 
                 return (
                   <button
                     key={card.id}
                     type="button"
-                    className={`makao-card-face ${cardColorClass(card)} ${playable ? 'playable' : ''}`}
-                    disabled={!playable}
-                    onClick={() => onPlayerCardClick(card)}
+                    className={`makao-card-face ${cardColorClass(card)} ${playable ? 'playable' : ''} ${selected ? 'selected' : ''}`}
+                    disabled={!playable && !selected}
+                    onClick={() => toggleCardSelection('player', card)}
                   >
-                    {fullCardName(card)}
+                    <span className="makao-card-content">
+                      <span className="makao-card-rank">{card.rank}</span>
+                      <span className="makao-card-suit">{suitSymbol(card.suit)}</span>
+                    </span>
                   </button>
                 )
               })}

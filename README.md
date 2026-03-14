@@ -88,6 +88,42 @@ php artisan config:clear
 php artisan cache:clear
 ```
 
+## Polaczenie ze wspolna baza online
+
+Zeby Orbitum + Optivio + pozostale moduly dzialaly na tej samej bazie online, backend `dj-api` musi byc uruchomiony z poprawnymi zmiennymi srodowiskowymi.
+
+Minimalny zestaw na hostingu (Railway/Render):
+
+```env
+APP_URL=https://twoj-backend.up.railway.app
+DB_CONNECTION=mysql
+DB_HOST=...
+DB_PORT=3306
+DB_DATABASE=...
+DB_USERNAME=...
+DB_PASSWORD=...
+
+# albo zamiast powyzszych: DB_URL / DATABASE_URL / MYSQL_URL
+FRONTEND_ORIGINS=https://twoj-frontend.vercel.app
+SANCTUM_STATEFUL_DOMAINS=twoj-frontend.vercel.app
+SESSION_SECURE_COOKIE=true
+SESSION_SAME_SITE=none
+```
+
+Po deployu backendu uruchom migracje na tej online bazie:
+
+```bash
+php artisan migrate --force
+```
+
+Frontend (Vercel) musi miec:
+
+```env
+VITE_API_URL=https://twoj-backend.up.railway.app
+```
+
+Bez tego frontend moze laczyc sie z nieprawidlowym API i bedzie wygladac jakby dane nie byly wspolne.
+
 ## Struktura repo
 
 ```text

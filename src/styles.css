@@ -2682,6 +2682,12 @@ body.sidebar-collapsed .brand-project-menu {
   gap: 8px;
 }
 
+.makao-player-head-actions {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
 .makao-player-head .makao-draw-btn {
   padding: 6px 10px;
   font-size: 0.82rem;
@@ -2708,26 +2714,26 @@ body.sidebar-collapsed .brand-project-menu {
 }
 
 .makao-card-face {
-  min-width: 58px;
-  height: 86px;
+  min-width: 72px;
+  height: 108px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+  border: 1px solid rgba(226, 232, 240, 0.72);
+  background: #ffffff;
+  color: #0f172a;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 1.06rem;
+  font-size: 1.2rem;
   padding: 0 8px;
 }
 
 .makao-card-face.red {
-  color: #fecaca;
+  color: #dc2626;
 }
 
 .makao-card-face.black {
-  color: #e5e7eb;
+  color: #111827;
 }
 
 .makao-card-face.down {
@@ -2740,13 +2746,21 @@ body.sidebar-collapsed .brand-project-menu {
 
 button.makao-card-face {
   cursor: pointer;
-  opacity: 0.78;
+  opacity: 0.84;
 }
 
 button.makao-card-face.playable {
   opacity: 1;
-  border-color: rgba(56, 189, 248, 0.72);
-  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2) inset;
+  border-color: rgba(8, 145, 178, 0.9);
+  box-shadow: 0 0 0 2px rgba(8, 145, 178, 0.18) inset;
+}
+
+button.makao-card-face.selected {
+  transform: translateY(-10px);
+  border-color: rgba(14, 165, 233, 0.95);
+  box-shadow:
+    0 14px 18px rgba(2, 8, 23, 0.34),
+    0 0 0 2px rgba(14, 165, 233, 0.24) inset;
 }
 
 button.makao-card-face:disabled {
@@ -2770,6 +2784,25 @@ button.makao-card-face:disabled {
 
 .makao-suit-btn {
   padding: 8px 10px;
+}
+
+.makao-card-content {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  gap: 5px;
+}
+
+.makao-card-rank {
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
+.makao-card-suit {
+  font-size: 2rem;
+  font-weight: 700;
 }
 
 .makao-log-list {
@@ -2800,7 +2833,525 @@ button.makao-card-face:disabled {
   border: 0;
 }
 
+/* optivio */
+.optivio-shell {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 12px;
+}
+
+.optivio-projects {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+}
+
+.optivio-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.optivio-brand img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.optivio-brand h1 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.optivio-brand p {
+  margin: 2px 0 0;
+}
+
+.optivio-project-form,
+.optivio-task-form {
+  display: grid;
+  gap: 8px;
+}
+
+.optivio-project-form input,
+.optivio-task-form input,
+.optivio-task-form select,
+.optivio-node select {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 9px 10px;
+  outline: none;
+}
+
+.optivio-project-form input:focus,
+.optivio-task-form input:focus,
+.optivio-task-form select:focus,
+.optivio-node select:focus {
+  border-color: rgba(var(--accent-rgb), 0.8);
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
+}
+
+.optivio-project-list {
+  display: grid;
+  gap: 6px;
+}
+
+.optivio-project-pill {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  cursor: pointer;
+  padding: 8px 10px;
+}
+
+.optivio-project-pill.active {
+  border-color: rgba(var(--accent-rgb), 0.68);
+  background: rgba(var(--accent-rgb), 0.2);
+}
+
+.optivio-project-pill small {
+  color: var(--muted);
+}
+
+.optivio-workspace {
+  min-height: 72vh;
+  background:
+    radial-gradient(
+      circle at 0 0,
+      rgba(var(--accent-rgb), 0.2),
+      transparent 46%
+    ),
+    radial-gradient(
+      circle at 100% 100%,
+      rgba(56, 189, 248, 0.12),
+      transparent 54%
+    ),
+    #0e182d;
+}
+
+.optivio-workspace-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.optivio-workspace-head h2 {
+  margin: 0;
+}
+
+.optivio-workspace-head p {
+  margin: 4px 0 0;
+}
+
+.optivio-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(94px, 1fr));
+  gap: 8px;
+}
+
+.optivio-metrics div {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  display: grid;
+  gap: 2px;
+}
+
+.optivio-metrics span {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.optivio-metrics strong {
+  font-size: 0.96rem;
+}
+
+.optivio-railway-canvas {
+  margin-top: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.18) 1px,
+    transparent 1px
+  );
+  background-size: 18px 18px;
+  background-position: -8px -8px;
+}
+
+.optivio-node {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(7, 14, 25, 0.8);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.optivio-node-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.optivio-node-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.sync-badge {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 3px 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.sync-badge.ok {
+  border-color: rgba(34, 197, 94, 0.5);
+  color: #86efac;
+}
+
+.sync-badge.warn {
+  border-color: rgba(251, 191, 36, 0.5);
+  color: #fde68a;
+}
+
+.optivio-node p {
+  margin: 0;
+}
+
+.optivio-node-foot {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.optivio-node-foot label {
+  display: grid;
+  gap: 4px;
+  font-size: 0.86rem;
+}
+
+.optivio-node-foot div {
+  text-align: right;
+  display: grid;
+  gap: 2px;
+}
+
+.optivio-node-foot span {
+  font-weight: 600;
+}
+
+.optivio-sync-error {
+  color: #fca5a5;
+}
+
+.optivio-empty,
+.optivio-empty-rail {
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 16px;
+  color: var(--muted);
+}
+
+.optivio-empty h2 {
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.optivio-notice {
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(var(--accent-rgb), 0.55);
+  background: rgba(var(--accent-rgb), 0.16);
+  padding: 8px 10px;
+}
+
+.optivio-dashboard-list {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.optivio-dashboard-item {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.optivio-dashboard-item p {
+  margin: 0;
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--accent-rgb), 0.55),
+    rgba(74, 222, 128, 0.7)
+  );
+}
+
+.optivio-flow-grid {
+  margin: 10px 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr auto 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.optivio-flow-node {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 9px;
+  display: grid;
+  gap: 4px;
+}
+
+.optivio-flow-node select {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  padding: 6px 8px;
+}
+
+.optivio-flow-arrow {
+  color: #7dd3fc;
+  font-weight: 700;
+}
+
+.taskora-shell-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 12px;
+}
+
+.taskora-projects-panel,
+.taskora-tasks-panel {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+}
+
+.taskora-task-columns {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.taskora-task-column {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  min-height: 220px;
+}
+
+.taskora-task-column h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.taskora-task-list {
+  display: grid;
+  gap: 6px;
+}
+
+.taskora-task-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  gap: 3px;
+}
+
+/* orbitum + optivio dashboard */
+.orbitum-overview-card {
+  display: grid;
+  gap: 12px;
+}
+
+.orbitum-overview-head h2,
+.orbitum-next-deadlines h3,
+.orbitum-calendar-head h3 {
+  margin: 0;
+}
+
+.orbitum-overview-head p {
+  margin: 4px 0 0;
+}
+
+.orbitum-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.orbitum-calendar-wrap {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.orbitum-calendar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.orbitum-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.orbitum-calendar-weekdays .weekday {
+  text-align: center;
+  color: #c6d6ea;
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.calendar-day {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  min-height: 80px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  display: grid;
+  align-content: start;
+  gap: 5px;
+}
+
+.calendar-day.muted-day {
+  opacity: 0.45;
+}
+
+.calendar-day-number {
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+.calendar-day-items {
+  display: grid;
+  gap: 4px;
+}
+
+.calendar-chip {
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-chip.project {
+  border-color: rgba(56, 189, 248, 0.56);
+  color: #bae6fd;
+}
+
+.calendar-chip.task {
+  border-color: rgba(74, 222, 128, 0.56);
+  color: #bbf7d0;
+}
+
+.calendar-chip.more {
+  border-color: rgba(255, 255, 255, 0.26);
+  color: #cbd5e1;
+}
+
+.deadline-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
 @media (max-width: 900px) {
+  .optivio-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .optivio-projects {
+    max-height: none;
+  }
+
+  .optivio-workspace-head {
+    flex-direction: column;
+  }
+
+  .optivio-metrics {
+    width: 100%;
+  }
+
+  .deadline-row {
+    grid-template-columns: 1fr;
+  }
+
+  .optivio-flow-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .optivio-flow-arrow {
+    display: none;
+  }
+
+  .taskora-shell-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .taskora-task-columns {
+    grid-template-columns: 1fr;
+  }
+
   .layout {
     grid-template-columns: 1fr;
   }
@@ -2963,5 +3514,13 @@ button.makao-card-face:disabled {
   .chic-dk-name {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .orbitum-calendar-grid {
+    gap: 4px;
+  }
+
+  .calendar-day {
+    min-height: 70px;
   }
 }

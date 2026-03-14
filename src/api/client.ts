@@ -1,5 +1,11 @@
 import axios from 'axios'
 
+const rawEnvApiUrl = (import.meta.env.VITE_API_URL || '').trim()
+const runtimeHost = typeof window !== 'undefined' ? window.location.hostname : ''
+const isLocalHost = runtimeHost === 'localhost' || runtimeHost === '127.0.0.1'
+const fallbackApiUrl = isLocalHost ? 'http://localhost:8000' : 'https://apka-dj-production.up.railway.app'
+const resolvedApiUrl = rawEnvApiUrl || fallbackApiUrl
+
 // mały helper do odczytu cookie XSRF-TOKEN (nie httpOnly)
 function getCookie(name: string) {
   const value = document.cookie.split('; ').find(row => row.startsWith(name + '='))
@@ -7,7 +13,7 @@ function getCookie(name: string) {
 }
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000',
+  baseURL: resolvedApiUrl,
   withCredentials: true,
   // jawnie ustaw nazwy dla axios
   xsrfCookieName: 'XSRF-TOKEN',
@@ -199,6 +205,51 @@ export type MakaoOnlineOverview = {
   incoming: MakaoOnlineInvite[]
   outgoing: MakaoOnlineInvite[]
   active_room?: MakaoOnlineRoom | null
+}
+
+export type OptivioTaskStatus = 'ready' | 'progress' | 'review' | 'done'
+
+export type OptivioTask = {
+  id: number
+  project_id: number
+  title: string
+  description: string
+  due_date: string | null
+  status: OptivioTaskStatus
+  created_at: string
+  taskora_sync: {
+    synced: boolean
+    task_id?: string | null
+    last_attempt_at?: string | null
+    error?: string | null
+  }
+}
+
+export type OptivioProject = {
+  id: number
+  name: string
+  description: string
+  due_date: string | null
+  taskora_project_id: number | null
+  created_at: string
+  tasks: OptivioTask[]
+}
+
+export type OptivioDeadlineEvent = {
+  id: string
+  date: string
+  title: string
+  type: 'project' | 'task'
+  projectName: string
+  status?: OptivioTaskStatus
+}
+
+export type OptivioOverview = {
+  projectsCount: number
+  tasksCount: number
+  doneTasksCount: number
+  syncPendingCount: number
+  deadlines: OptivioDeadlineEvent[]
 }
 
 export async function getMe(): Promise<Me> {
@@ -447,4 +498,71 @@ export async function syncMakaoRoomState(payload: {
 
 export async function leaveMakaoRoom(roomId: number): Promise<void> {
   await api.post(`/api/makao-online/room/${roomId}/leave`)
+}
+
+export async function listOptivioProjects(): Promise<OptivioProject[]> {
+  const r = await api.get('/api/optivio/projects')
+  return r.data
+}
+
+export async function createOptivioProject(payload: {
+  name: string
+  description?: string
+  dueDate?: string | null
+}): Promise<OptivioProject> {
+  const r = await api.post('/api/optivio/projects', {
+    name: payload.name,
+    description: payload.description || '',
+    due_date: payload.dueDate || null,
+  })
+  return r.data
+}
+
+export async function createOptivioTask(
+  projectId: number,
+  payload: { title: string; description?: string; dueDate?: string | null; status?: OptivioTaskStatus },
+): Promise<OptivioTask> {
+  const r = await api.post(`/api/optivio/projects/${projectId}/tasks`, {
+    title: payload.title,
+    description: payload.description || '',
+    due_date: payload.dueDate || null,
+    status: payload.status || 'ready',
+  })
+  return r.data
+}
+
+export async function linkOptivioProjectToTaskora(projectId: number, taskoraProjectId: number): Promise<OptivioProject> {
+  const r = await api.patch(`/api/optivio/projects/${projectId}/taskora-link`, {
+    taskora_project_id: taskoraProjectId,
+  })
+  return r.data
+}
+
+export async function updateOptivioTaskStatus(
+  projectId: number,
+  taskId: number,
+  status: OptivioTaskStatus,
+): Promise<OptivioTask> {
+  const r = await api.patch(`/api/optivio/projects/${projectId}/tasks/${taskId}/status`, {
+    status,
+  })
+  return r.data
+}
+
+export async function updateOptivioTaskoraSync(
+  projectId: number,
+  taskId: number,
+  payload: { synced: boolean; taskId?: string; error?: string },
+): Promise<OptivioTask> {
+  const r = await api.patch(`/api/optivio/projects/${projectId}/tasks/${taskId}/taskora-sync`, {
+    synced: payload.synced,
+    task_id: payload.taskId || null,
+    error: payload.error || null,
+  })
+  return r.data
+}
+
+export async function getOptivioOverview(): Promise<OptivioOverview> {
+  const r = await api.get('/api/optivio/overview')
+  return r.data
 }

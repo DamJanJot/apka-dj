@@ -2,6 +2,8 @@ export type AppKey = 'orbitum' | 'neuronetix' | 'taskora' | 'optivio' | 'chic'
 
 export type NavItemId =
   | 'dashboard'
+  | 'projects'
+  | 'calendar'
   | 'news'
   | 'markets'
   | 'messages'
@@ -22,18 +24,18 @@ export const APP_LABELS: Record<AppKey, string> = {
 }
 
 export const DEFAULT_VISIBLE_NAV: Record<AppKey, NavItemId[]> = {
-  orbitum: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+  orbitum: ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
   neuronetix: ['dashboard', 'messages', 'friends', 'docs'],
-  taskora: ['dashboard', 'messages', 'friends', 'docs'],
-  optivio: ['dashboard', 'messages', 'friends', 'docs'],
+  taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
+  optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
 }
 
 export const APP_NAV_CANDIDATES: Record<AppKey, NavItemId[]> = {
-  orbitum: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+  orbitum: ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
   neuronetix: ['dashboard', 'messages', 'friends', 'docs'],
-  taskora: ['dashboard', 'messages', 'friends', 'docs'],
-  optivio: ['dashboard', 'messages', 'friends', 'docs'],
+  taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
+  optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
 }
 
@@ -97,12 +99,21 @@ export function resetNavVisibility(app: AppKey): void {
 }
 
 export function getTaskoraEmbedUrl(): string {
+  const envTaskoraUrl = (import.meta.env.VITE_TASKORA_EMBED_URL || '').trim()
   const custom = localStorage.getItem(TASKORA_URL_KEY)
-  if (!custom) return 'http://localhost/taskora/index.php'
+  if (!custom) {
+    return envTaskoraUrl || 'http://localhost/taskora/index.php'
+  }
 
   // Migrate older, broken preset to the working XAMPP alias.
   if (custom.includes('/Taskora_App/')) {
     return custom.replace('/Taskora_App/', '/taskora/')
+  }
+
+  // If user still has old localhost URL saved but env points to online Taskora,
+  // prefer env to avoid dependency on local XAMPP.
+  if (envTaskoraUrl && custom.includes('localhost/taskora')) {
+    return envTaskoraUrl
   }
 
   return custom

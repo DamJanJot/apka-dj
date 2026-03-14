@@ -9,6 +9,8 @@ use App\Http\Controllers\OrbitumChatController;
 use App\Http\Controllers\OrbitumFriendsController;
 use App\Http\Controllers\OrbitumMakaoOnlineController;
 use App\Http\Controllers\OrbitumPostsController;
+use App\Http\Controllers\OptivioController;
+use App\Http\Controllers\TaskoraBridgeController;
 use App\Models\OrbitumFriendship;
 use App\Models\LegacyUser;
 use App\Models\News;
@@ -240,4 +242,23 @@ Route::middleware('auth:sanctum')->prefix('makao-online')->group(function () {
     Route::get('/room/{roomId}', [OrbitumMakaoOnlineController::class, 'room']);
     Route::post('/room/{roomId}/sync', [OrbitumMakaoOnlineController::class, 'syncRoomState']);
     Route::post('/room/{roomId}/leave', [OrbitumMakaoOnlineController::class, 'leaveRoom']);
+});
+
+// ---------- OPTIVIO ----------
+Route::middleware('auth:sanctum')->prefix('optivio')->group(function () {
+    Route::get('/projects', [OptivioController::class, 'projects']);
+    Route::post('/projects', [OptivioController::class, 'createProject']);
+    Route::patch('/projects/{projectId}/taskora-link', [OptivioController::class, 'linkTaskoraProject']);
+    Route::post('/projects/{projectId}/tasks', [OptivioController::class, 'createTask']);
+    Route::patch('/projects/{projectId}/tasks/{taskId}/status', [OptivioController::class, 'updateTaskStatus']);
+    Route::patch('/projects/{projectId}/tasks/{taskId}/taskora-sync', [OptivioController::class, 'updateTaskoraSync']);
+    Route::get('/overview', [OptivioController::class, 'overview']);
+});
+
+// ---------- TASKORA BRIDGE ----------
+Route::middleware('auth:sanctum')->prefix('taskora-bridge')->group(function () {
+    Route::get('/projects', [TaskoraBridgeController::class, 'projects']);
+    Route::post('/projects', [TaskoraBridgeController::class, 'createProject']);
+    Route::get('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'tasks']);
+    Route::post('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'createTask']);
 });

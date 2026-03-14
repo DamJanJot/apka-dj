@@ -15,6 +15,7 @@ const APP_ORDER: AppKey[] = ['orbitum', 'neuronetix', 'taskora', 'optivio', 'chi
 const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
   orbitum: [
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'calendar', label: 'Kalendarz' },
     { id: 'news', label: 'Aktualnosci' },
     { id: 'markets', label: 'Rynki' },
     { id: 'messages', label: 'Wiadomosci' },
@@ -31,12 +32,14 @@ const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
   ],
   taskora: [
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'projects', label: 'Projekty' },
     { id: 'messages', label: 'Wiadomosci' },
     { id: 'friends', label: 'Znajomi' },
     { id: 'docs', label: 'Documentation' },
   ],
   optivio: [
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'projects', label: 'Projekty' },
     { id: 'messages', label: 'Wiadomosci' },
     { id: 'friends', label: 'Znajomi' },
     { id: 'docs', label: 'Documentation' },
