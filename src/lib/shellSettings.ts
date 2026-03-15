@@ -1,7 +1,11 @@
-export type AppKey = 'orbitum' | 'neuronetix' | 'taskora' | 'optivio' | 'chic'
+export type AppKey = 'orbitum' | 'neuronetix' | 'taskora' | 'optivio' | 'chic' | 'admin'
 
 export type NavItemId =
   | 'dashboard'
+  | 'users'
+  | 'roles'
+  | 'assignments'
+  | 'relations'
   | 'projects'
   | 'calendar'
   | 'news'
@@ -10,6 +14,7 @@ export type NavItemId =
   | 'friends'
   | 'board'
   | 'makao'
+  | 'sidebar_settings'
   | 'docs'
 
 export const SHELL_NAV_PREFS_KEY = 'shell.navVisibility.v1'
@@ -21,6 +26,7 @@ export const APP_LABELS: Record<AppKey, string> = {
   taskora: 'Taskora',
   optivio: 'Optivio',
   chic: 'Grafiki',
+  admin: 'Admin',
 }
 
 export const DEFAULT_VISIBLE_NAV: Record<AppKey, NavItemId[]> = {
@@ -29,6 +35,7 @@ export const DEFAULT_VISIBLE_NAV: Record<AppKey, NavItemId[]> = {
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+  admin: ['dashboard', 'users', 'roles', 'assignments', 'relations', 'docs', 'sidebar_settings'],
 }
 
 export const APP_NAV_CANDIDATES: Record<AppKey, NavItemId[]> = {
@@ -37,6 +44,7 @@ export const APP_NAV_CANDIDATES: Record<AppKey, NavItemId[]> = {
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+  admin: ['dashboard', 'users', 'roles', 'assignments', 'relations', 'docs', 'sidebar_settings'],
 }
 
 type NavPrefs = Record<AppKey, Partial<Record<NavItemId, boolean>>>
@@ -51,6 +59,7 @@ function safeParse<T>(value: string | null, fallback: T): T {
 }
 
 export function detectAppFromPath(pathname: string): AppKey {
+  if (pathname.startsWith('/admin')) return 'admin'
   if (pathname.startsWith('/neuronetix')) return 'neuronetix'
   if (pathname.startsWith('/taskora')) return 'taskora'
   if (pathname.startsWith('/optivio')) return 'optivio'
@@ -66,6 +75,7 @@ export function getNavPrefs(): NavPrefs {
     taskora: {},
     optivio: {},
     chic: {},
+    admin: {},
   })
 }
 

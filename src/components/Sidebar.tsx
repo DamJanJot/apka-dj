@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound, Gamepad2, ChevronDown, Settings, CalendarDays, KanbanSquare } from 'lucide-react'
 import { getFriendsOverview } from '@/api/client'
 import { APP_LABELS, AppKey, detectAppFromPath, isNavVisible, NavItemId } from '@/lib/shellSettings'
+import { useAuth } from '@/context/AuthContext'
 
 type NavDef = {
   id: NavItemId
@@ -14,6 +15,10 @@ type NavDef = {
 
 const NAV_DEFS: NavDef[] = [
   { id: 'dashboard', label: 'Dashboard', to: '/dashboard', title: 'Dashboard', icon: <LayoutDashboard className="nav-icon" size={18} /> },
+  { id: 'users', label: 'Uzytkownicy', to: '/admin/users', title: 'Uzytkownicy', icon: <UsersRound className="nav-icon" size={18} /> },
+  { id: 'roles', label: 'Role', to: '/admin/roles', title: 'Role', icon: <Settings className="nav-icon" size={18} /> },
+  { id: 'assignments', label: 'Przypisania', to: '/admin/assignments', title: 'Przypisania', icon: <KanbanSquare className="nav-icon" size={18} /> },
+  { id: 'relations', label: 'Relacje', to: '/admin/relations', title: 'Relacje', icon: <UsersRound className="nav-icon" size={18} /> },
   { id: 'projects', label: 'Projekty', to: '/projects', title: 'Projekty', icon: <KanbanSquare className="nav-icon" size={18} /> },
   { id: 'calendar', label: 'Kalendarz', to: '/calendar', title: 'Kalendarz', icon: <CalendarDays className="nav-icon" size={18} /> },
   { id: 'news', label: 'Aktualnosci', to: '/news', title: 'Aktualnosci', icon: <Newspaper className="nav-icon" size={18} /> },
@@ -22,6 +27,7 @@ const NAV_DEFS: NavDef[] = [
   { id: 'friends', label: 'Znajomi', to: '/friends', title: 'Znajomi', icon: <UsersRound className="nav-icon" size={18} /> },
   { id: 'board', label: 'Tablica', to: '/board', title: 'Tablica', icon: <Newspaper className="nav-icon" size={18} /> },
   { id: 'makao', label: 'Makao', to: '/makao', title: 'Makao', icon: <Gamepad2 className="nav-icon" size={18} /> },
+  { id: 'sidebar_settings', label: 'Panel boczny', to: '/admin/sidebar-settings', title: 'Panel boczny', icon: <Settings className="nav-icon" size={18} /> },
   { id: 'docs', label: 'Documentation', to: '/docs', title: 'Documentation', icon: <BookText className="nav-icon" size={18} /> },
 ]
 
@@ -31,6 +37,7 @@ const APP_NAV_ORDER: Record<AppKey, NavItemId[]> = {
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
+  admin: ['dashboard', 'users', 'roles', 'assignments', 'relations', 'docs', 'sidebar_settings'],
 }
 
 const APP_NAV_LABEL_OVERRIDES: Partial<Record<AppKey, Partial<Record<NavItemId, string>>>> = {
@@ -71,6 +78,22 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
     return `/${app}/projects`
   }
 
+  if (navId === 'users') {
+    return `/${app}/users`
+  }
+
+  if (navId === 'roles') {
+    return `/${app}/roles`
+  }
+
+  if (navId === 'assignments') {
+    return `/${app}/assignments`
+  }
+
+  if (navId === 'relations') {
+    return `/${app}/relations`
+  }
+
   if (navId === 'calendar') {
     return `/${app}/calendar`
   }
@@ -87,23 +110,34 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
     return `/${app}/docs`
   }
 
+  if (navId === 'sidebar_settings') {
+    return `/${app}/sidebar-settings`
+  }
+
   return `/${app}/dashboard`
 }
 
 export default function Sidebar() {
+  const { user } = useAuth()
   const location = useLocation()
   const [incomingCount, setIncomingCount] = useState(0)
   const [projectMenuOpen, setProjectMenuOpen] = useState(false)
   const currentApp = detectAppFromPath(location.pathname)
+  const role = (user?.rola || '').toLowerCase()
+  const allowedApps = user?.access?.apps || []
+  const allowedPanels = user?.access?.panels?.[currentApp] || []
+  const canAccessAdmin = (role === 'admin' || role === 'owner') && (allowedApps.length === 0 || allowedApps.includes('admin'))
+  const canAccessOrbitum = allowedApps.length === 0 || allowedApps.includes('orbitum')
   const isNeuronetix = currentApp === 'neuronetix'
   const isTaskora = currentApp === 'taskora'
   const isOptivio = currentApp === 'optivio'
   const isChic = currentApp === 'chic'
+  const isAdmin = currentApp === 'admin'
 
   const brandLogo = isTaskora
     ? '/taskora-logo.png'
-    : (isNeuronetix ? '/neuronetix-logo.png' : (isOptivio ? '/optivio-logo.png' : (isChic ? '/chic-logo.png' : '/dj-api/public/uploads/orbitum-logo.png')))
-  const brandName = isTaskora ? 'Taskora' : (isNeuronetix ? 'Neuronetix' : (isOptivio ? 'Optivio' : (isChic ? 'Grafiki' : 'Orbitum')))
+    : (isNeuronetix ? '/neuronetix-logo.png' : (isOptivio ? '/optivio-logo.png' : (isChic ? '/chic-logo.png' : (isAdmin ? '/neuronetix-logo.png' : '/dj-api/public/uploads/orbitum-logo.png'))))
+  const brandName = isTaskora ? 'Taskora' : (isNeuronetix ? 'Neuronetix' : (isOptivio ? 'Optivio' : (isChic ? 'Grafiki' : (isAdmin ? 'Admin' : 'Orbitum'))))
 
   const startPath = currentApp === 'orbitum' ? '/dashboard' : `/${currentApp}/dashboard`
 
@@ -111,6 +145,7 @@ export default function Sidebar() {
     .map((id) => NAV_DEFS.find((n) => n.id === id))
     .filter((item): item is NavDef => !!item)
     .filter((item) => isNavVisible(currentApp, item.id))
+    .filter((item) => allowedPanels.length === 0 || allowedPanels.includes(item.id))
     .map((item) => ({
       ...item,
       to: toAppPath(currentApp, item.id),
@@ -152,33 +187,41 @@ export default function Sidebar() {
     <aside className="sidebar" id="sidebar">
       <div className="brand">
         <button type="button" className="brand-btn" onClick={() => setProjectMenuOpen((v) => !v)}>
-          <img src={brandLogo} alt="Logo" className="brand-logo" />
+          <span className="brand-logo-box">
+            <img src={brandLogo} alt="Logo" className="brand-logo" />
+          </span>
           <span className="brand-name">{brandName}</span>
           <ChevronDown size={14} className="brand-caret" />
         </button>
 
         {projectMenuOpen && (
           <div className="brand-project-menu">
-            <NavLink to="/dashboard" className="brand-project-item">
+            {canAccessOrbitum && <NavLink to="/dashboard" className="brand-project-item">
               <img src="/dj-api/public/uploads/orbitum-logo.png" alt="Orbitum" className="project-nav-logo" />
               <span>{APP_LABELS.orbitum}</span>
-            </NavLink>
-            <NavLink to="/neuronetix/dashboard" className="brand-project-item">
+            </NavLink>}
+            {(allowedApps.length === 0 || allowedApps.includes('neuronetix')) && <NavLink to="/neuronetix/dashboard" className="brand-project-item">
               <img src="/neuronetix-logo.png" alt="Neuronetix" className="project-nav-logo" />
               <span>{APP_LABELS.neuronetix}</span>
-            </NavLink>
-            <NavLink to="/taskora/dashboard" className="brand-project-item">
+            </NavLink>}
+            {(allowedApps.length === 0 || allowedApps.includes('taskora')) && <NavLink to="/taskora/dashboard" className="brand-project-item">
               <img src="/taskora-logo.png" alt="Taskora" className="project-nav-logo" />
               <span>{APP_LABELS.taskora}</span>
-            </NavLink>
-            <NavLink to="/optivio/dashboard" className="brand-project-item">
+            </NavLink>}
+            {(allowedApps.length === 0 || allowedApps.includes('optivio')) && <NavLink to="/optivio/dashboard" className="brand-project-item">
               <img src="/optivio-logo.png" alt="Optivio" className="project-nav-logo" />
               <span>{APP_LABELS.optivio}</span>
-            </NavLink>
-            <NavLink to="/grafiki/dashboard" className="brand-project-item">
+            </NavLink>}
+            {(allowedApps.length === 0 || allowedApps.includes('chic')) && <NavLink to="/grafiki/dashboard" className="brand-project-item">
               <img src="/chic-logo.png" alt="Grafiki" className="project-nav-logo" />
               <span>{APP_LABELS.chic}</span>
-            </NavLink>
+            </NavLink>}
+            {canAccessAdmin && (
+              <NavLink to="/admin/dashboard" className="brand-project-item">
+                <img src="/neuronetix-logo.png" alt="Admin" className="project-nav-logo" />
+                <span>{APP_LABELS.admin}</span>
+              </NavLink>
+            )}
           </div>
         )}
       </div>
@@ -201,10 +244,6 @@ export default function Sidebar() {
         <NavLink to="/info" title="Info " className="nav-item">
           <Info  className="nav-icon" size={18} />
           <span className="link-text">Info </span>
-        </NavLink>
-        <NavLink to="/sidebar-settings" title="Panel boczny" className="nav-item nav-item-trailing-icon">
-          <span className="link-text">Panel boczny</span>
-          <Settings className="nav-icon" size={18} />
         </NavLink>
       </div>
     </aside>

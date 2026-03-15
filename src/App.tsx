@@ -10,6 +10,11 @@ import Friends from '@/pages/Friends'
 import Board from '@/pages/Board'
 import Makao from '@/pages/Makao'
 import Neuronetix from '@/pages/Neuronetix'
+import AdminDashboard from '@/pages/AdminDashboard'
+import AdminUsers from '@/pages/AdminUsers'
+import AdminRoles from '@/pages/AdminRoles'
+import AdminAssignments from '@/pages/AdminAssignments'
+import AdminRelations from '@/pages/AdminRelations'
 import Taskora from '@/pages/Taskora'
 import Optivio from '@/pages/Optivio'
 import TaskoraDashboard from '@/pages/TaskoraDashboard'
@@ -34,6 +39,28 @@ function Protected({ children }: { children: JSX.Element }) {
   return children
 }
 
+function AdminOnly({ children, requiredPanel }: { children: JSX.Element; requiredPanel?: string }) {
+  const { user, loading } = useAuth()
+  if (loading) return <div style={{ padding: 24 }}>Ładowanie…</div>
+
+  const role = (user?.rola || '').toLowerCase()
+  if (role !== 'admin' && role !== 'owner') {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  const apps = user?.access?.apps || []
+  const adminPanels = user?.access?.panels?.admin || []
+  if (requiredPanel && apps.length > 0) {
+    const hasAdminApp = apps.includes('admin')
+    const hasPanel = adminPanels.includes(requiredPanel)
+    if (!hasAdminApp || !hasPanel) {
+      return <Navigate to="/dashboard" replace />
+    }
+  }
+
+  return children
+}
+
 export default function App() {
   return (
     <Routes>
@@ -53,7 +80,7 @@ export default function App() {
         <Route path="profile/:userId" element={<Profile />} />
         <Route path="profile/edit" element={<EditProfile />} />
         <Route path="settings" element={<AccountSettings />} />
-        <Route path="sidebar-settings" element={<Settings />} />
+        <Route path="sidebar-settings" element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="calendar" element={<OrbitumCalendar />} />
         <Route path="news" element={<News />} />
@@ -67,6 +94,64 @@ export default function App() {
         <Route path="neuronetix/messages" element={<AppScopedModule appLabel="Neuronetix" moduleLabel="Wiadomosci" />} />
         <Route path="neuronetix/friends" element={<AppScopedModule appLabel="Neuronetix" moduleLabel="Znajomi" />} />
         <Route path="neuronetix/docs" element={<Docs />} />
+
+        <Route path="admin" element={<Navigate to="/admin/dashboard" replace />} />
+        <Route
+          path="admin/dashboard"
+          element={
+            <AdminOnly requiredPanel="dashboard">
+              <AdminDashboard />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="admin/users"
+          element={
+            <AdminOnly requiredPanel="users">
+              <AdminUsers />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="admin/roles"
+          element={
+            <AdminOnly requiredPanel="roles">
+              <AdminRoles />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="admin/assignments"
+          element={
+            <AdminOnly requiredPanel="assignments">
+              <AdminAssignments />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="admin/relations"
+          element={
+            <AdminOnly requiredPanel="relations">
+              <AdminRelations />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="admin/docs"
+          element={
+            <AdminOnly requiredPanel="docs">
+              <Docs />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="admin/sidebar-settings"
+          element={
+            <AdminOnly requiredPanel="sidebar_settings">
+              <Settings />
+            </AdminOnly>
+          }
+        />
 
         <Route path="taskora" element={<Navigate to="/taskora/dashboard" replace />} />
         <Route path="taskora/dashboard" element={<TaskoraDashboard />} />

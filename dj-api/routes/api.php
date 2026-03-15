@@ -11,6 +11,7 @@ use App\Http\Controllers\OrbitumMakaoOnlineController;
 use App\Http\Controllers\OrbitumPostsController;
 use App\Http\Controllers\OptivioController;
 use App\Http\Controllers\TaskoraBridgeController;
+use App\Http\Controllers\Admin\UserRoleController;
 use App\Models\OrbitumFriendship;
 use App\Models\LegacyUser;
 use App\Models\News;
@@ -130,6 +131,11 @@ Route::get('/me', function (Request $request) {
     $u = $request->user(); // LegacyUser
     if (!$u) return response()->json(null, 401);
 
+    $access = method_exists($u, 'resolveAccess') ? $u->resolveAccess() : [
+        'apps' => ['orbitum'],
+        'panels' => ['orbitum' => ['dashboard']],
+    ];
+
     return response()->json([
         'id' => $u->id,
         'email' => $u->email,
@@ -139,6 +145,7 @@ Route::get('/me', function (Request $request) {
         'nick' => $u->nick,
         'rola' => $u->rola,
         'avatar' => $u->zdjecie_profilowe,
+        'access' => $access,
     ]);
 })->middleware('auth:sanctum');
 
@@ -245,20 +252,39 @@ Route::middleware('auth:sanctum')->prefix('makao-online')->group(function () {
 });
 
 // ---------- OPTIVIO ----------
-Route::middleware('auth:sanctum')->prefix('optivio')->group(function () {
+Route::middleware(['auth:sanctum', 'role:user,manager,admin,owner,analyst,support', 'access:optivio'])->prefix('optivio')->group(function () {
     Route::get('/projects', [OptivioController::class, 'projects']);
-    Route::post('/projects', [OptivioController::class, 'createProject']);
-    Route::patch('/projects/{projectId}/taskora-link', [OptivioController::class, 'linkTaskoraProject']);
-    Route::post('/projects/{projectId}/tasks', [OptivioController::class, 'createTask']);
-    Route::patch('/projects/{projectId}/tasks/{taskId}/status', [OptivioController::class, 'updateTaskStatus']);
-    Route::patch('/projects/{projectId}/tasks/{taskId}/taskora-sync', [OptivioController::class, 'updateTaskoraSync']);
+    Route::post('/projects', [OptivioController::class, 'createProject'])->middleware('role:manager,admin,owner');
+    Route::patch('/projects/{projectId}/taskora-link', [OptivioController::class, 'linkTaskoraProject'])->middleware('role:manager,admin,owner');
+    Route::post('/projects/{projectId}/tasks', [OptivioController::class, 'createTask'])->middleware('role:manager,admin,owner');
+    Route::patch('/projects/{projectId}/tasks/{taskId}/status', [OptivioController::class, 'updateTaskStatus'])->middleware('role:manager,admin,owner,support');
+    Route::patch('/projects/{projectId}/tasks/{taskId}/taskora-sync', [OptivioController::class, 'updateTaskoraSync'])->middleware('role:manager,admin,owner');
     Route::get('/overview', [OptivioController::class, 'overview']);
 });
 
 // ---------- TASKORA BRIDGE ----------
-Route::middleware('auth:sanctum')->prefix('taskora-bridge')->group(function () {
+Route::middleware(['auth:sanctum', 'role:manager,admin,owner', 'access:taskora'])->prefix('taskora-bridge')->group(function () {
     Route::get('/projects', [TaskoraBridgeController::class, 'projects']);
     Route::post('/projects', [TaskoraBridgeController::class, 'createProject']);
     Route::get('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'tasks']);
     Route::post('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'createTask']);
+});
+
+// ---------- ADMIN ----------
+Route::middleware(['auth:sanctum', 'role:admin,owner'])->prefix('admin')->group(function () {
+    Route::post('/users', [UserRoleController::class, 'createUser'])->middleware('access:admin,users');
+    Route::get('/users', [UserRoleController::class, 'users'])->middleware('access:admin,users');
+    Route::get('/relations', [UserRoleController::class, 'relations'])->middleware('access:admin,relations');
+    Route::post('/relations', [UserRoleController::class, 'createRelation'])->middleware('access:admin,relations');
+    Route::delete('/relations/{relationId}', [UserRoleController::class, 'deleteRelation'])->middleware('access:admin,relations');
+    Route::post('/roles', [UserRoleController::class, 'createRole'])->middleware('access:admin,roles');
+    Route::get('/roles', [UserRoleController::class, 'roles'])->middleware('access:admin,roles');
+    Route::patch('/roles/{key}', [UserRoleController::class, 'updateRole'])->middleware('access:admin,roles');
+    Route::delete('/roles/{key}', [UserRoleController::class, 'deleteRole'])->middleware('access:admin,roles');
+    Route::get('/assignments', [UserRoleController::class, 'assignments'])->middleware('access:admin,assignments');
+    Route::patch('/roles/{key}/app-assignments', [UserRoleController::class, 'syncRoleApps'])->middleware('access:admin,assignments');
+    Route::patch('/roles/{key}/panel-assignments', [UserRoleController::class, 'syncRolePanels'])->middleware('access:admin,assignments');
+    Route::get('/role-change-logs', [UserRoleController::class, 'history'])->middleware('access:admin,users');
+    Route::get('/users/{userId}/role-history', [UserRoleController::class, 'userHistory'])->middleware('access:admin,users');
+    Route::patch('/users/{userId}/role', [UserRoleController::class, 'update'])->middleware('access:admin,users');
 });

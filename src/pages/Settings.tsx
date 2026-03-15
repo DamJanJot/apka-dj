@@ -10,7 +10,7 @@ import {
   setTaskoraEmbedUrl,
 } from '@/lib/shellSettings'
 
-const APP_ORDER: AppKey[] = ['orbitum', 'neuronetix', 'taskora', 'optivio', 'chic']
+const APP_ORDER: AppKey[] = ['orbitum', 'neuronetix', 'taskora', 'optivio', 'chic', 'admin']
 
 const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
   orbitum: [
@@ -54,6 +54,15 @@ const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
     { id: 'makao', label: 'Plan pracy' },
     { id: 'docs', label: 'Lokalizacje' },
   ],
+  admin: [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'users', label: 'Uzytkownicy' },
+    { id: 'roles', label: 'Role' },
+    { id: 'assignments', label: 'Przypisania' },
+    { id: 'relations', label: 'Relacje' },
+    { id: 'docs', label: 'Documentation' },
+    { id: 'sidebar_settings', label: 'Panel boczny' },
+  ],
 }
 
 export default function Settings() {
@@ -67,6 +76,7 @@ export default function Settings() {
       taskora: {} as Record<NavItemId, boolean>,
       optivio: {} as Record<NavItemId, boolean>,
       chic: {} as Record<NavItemId, boolean>,
+      admin: {} as Record<NavItemId, boolean>,
     }
 
     for (const app of APP_ORDER) {
