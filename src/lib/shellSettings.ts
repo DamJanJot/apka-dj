@@ -3,6 +3,7 @@ export type AppKey = 'orbitum' | 'neuronetix' | 'taskora' | 'optivio' | 'chic' |
 export type NavItemId =
   | 'dashboard'
   | 'teacher'
+  | 'student'
   | 'users'
   | 'roles'
   | 'assignments'
@@ -32,7 +33,7 @@ export const APP_LABELS: Record<AppKey, string> = {
 
 export const DEFAULT_VISIBLE_NAV: Record<AppKey, NavItemId[]> = {
   orbitum: ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-  neuronetix: ['dashboard', 'messages', 'friends', 'teacher', 'docs'],
+  neuronetix: ['dashboard', 'messages', 'friends', 'teacher', 'student', 'docs'],
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
@@ -41,7 +42,7 @@ export const DEFAULT_VISIBLE_NAV: Record<AppKey, NavItemId[]> = {
 
 export const APP_NAV_CANDIDATES: Record<AppKey, NavItemId[]> = {
   orbitum: ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-  neuronetix: ['dashboard', 'messages', 'friends', 'teacher', 'docs'],
+  neuronetix: ['dashboard', 'messages', 'friends', 'teacher', 'student', 'docs'],
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],

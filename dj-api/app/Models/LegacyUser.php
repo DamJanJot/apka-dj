@@ -15,7 +15,7 @@ class LegacyUser extends Authenticatable
 
     private const AVAILABLE_PANELS = [
         'orbitum' => ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-        'neuronetix' => ['dashboard', 'messages', 'friends', 'teacher', 'docs'],
+        'neuronetix' => ['dashboard', 'messages', 'friends', 'teacher', 'student', 'docs'],
         'taskora' => ['dashboard', 'projects', 'messages', 'friends', 'docs'],
         'optivio' => ['dashboard', 'projects', 'messages', 'friends', 'docs'],
         'chic' => ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
@@ -190,6 +190,10 @@ class LegacyUser extends Authenticatable
             $panelList = self::AVAILABLE_PANELS[$appKey];
             if ($appKey === 'neuronetix' && !in_array($role, ['nauczyciel', 'teacher', 'admin', 'owner'], true)) {
                 $panelList = array_values(array_filter($panelList, static fn (string $panel): bool => $panel !== 'teacher'));
+            }
+
+            if ($appKey === 'neuronetix' && !in_array($role, ['uczen', 'student', 'admin', 'owner'], true)) {
+                $panelList = array_values(array_filter($panelList, static fn (string $panel): bool => $panel !== 'student'));
             }
 
             $panels[$appKey] = $panelList;

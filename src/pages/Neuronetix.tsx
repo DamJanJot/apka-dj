@@ -14,6 +14,9 @@ export default function Neuronetix() {
   const canOpenTeacherPanel = (role === 'nauczyciel' || role === 'admin' || role === 'owner')
     && (neuronetixApps.length === 0 || neuronetixApps.includes('neuronetix'))
     && (neuronetixPanels.length === 0 || neuronetixPanels.includes('teacher'))
+  const canOpenStudentPanel = (role === 'uczen' || role === 'student' || role === 'admin' || role === 'owner')
+    && (neuronetixApps.length === 0 || neuronetixApps.includes('neuronetix'))
+    && (neuronetixPanels.length === 0 || neuronetixPanels.includes('student'))
 
   return (
     <div className="card" style={{ padding: 20 }}>
@@ -63,6 +66,18 @@ export default function Neuronetix() {
           </p>
           <Link to="/neuronetix/teacher" className="btn btn-primary">
             Otworz panel nauczyciela
+          </Link>
+        </div>
+      )}
+
+      {canOpenStudentPanel && (
+        <div className="card" style={{ marginTop: 14, marginBottom: 0 }}>
+          <h2 style={{ marginTop: 0 }}>Panel ucznia</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Twoje zadania, quizy i powiadomienia od nauczyciela w jednym miejscu.
+          </p>
+          <Link to="/neuronetix/student" className="btn btn-primary">
+            Otworz panel ucznia
           </Link>
         </div>
       )}
