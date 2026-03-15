@@ -5,10 +5,14 @@ import {
   ChatNotificationItem,
   getChatNotifications,
   getPostMentionNotifications,
+  listTeacherNotifications,
   logout,
+  markTeacherNotificationRead,
+  markTeacherNotificationsReadAll,
   markPostMentionsReadAll,
   markChatNotificationsReadFromUser,
   PostMentionNotificationItem,
+  TeacherNotificationItem,
   pingChatActivity,
   setChatOffline,
 } from '@/api/client'
@@ -52,6 +56,11 @@ export default function Topbar() {
       if (loc.pathname.endsWith('/dashboard')) return 'Dashboard'
       if (loc.pathname.endsWith('/messages')) return 'Wiadomosci'
       if (loc.pathname.endsWith('/friends')) return 'Znajomi'
+      if (loc.pathname.endsWith('/student/tasks')) return 'Zadania ucznia'
+      if (loc.pathname.endsWith('/student/tests')) return 'Testy ucznia'
+      if (loc.pathname.endsWith('/student/quizzes')) return 'Quizy ucznia'
+      if (loc.pathname.endsWith('/teacher')) return 'Panel nauczyciela'
+      if (loc.pathname.endsWith('/student')) return 'Panel ucznia'
       if (loc.pathname.endsWith('/docs')) return 'Documentation'
     }
 
@@ -140,6 +149,8 @@ export default function Topbar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifItems, setNotifItems] = useState<ChatNotificationItem[]>([])
+  const [teacherNotifItems, setTeacherNotifItems] = useState<TeacherNotificationItem[]>([])
+  const [teacherUnreadCount, setTeacherUnreadCount] = useState(0)
   const [postMentionItems, setPostMentionItems] = useState<PostMentionNotificationItem[]>([])
   const [postMentionsCount, setPostMentionsCount] = useState(0)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -188,22 +199,28 @@ export default function Topbar() {
 
     const load = async () => {
       try {
-        const [chatData, postData] = await Promise.all([
+        const isNeuronetix = loc.pathname.startsWith('/neuronetix')
+        const [chatData, postData, teacherData] = await Promise.all([
           getChatNotifications(),
           getPostMentionNotifications(),
+          isNeuronetix ? listTeacherNotifications() : Promise.resolve({ data: [], unread: 0 }),
         ])
 
         if (!mounted) return
-        setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0))
+        setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0) + (teacherData.unread || 0))
         setNotifItems(chatData.items || [])
         setPostMentionItems(postData.items || [])
         setPostMentionsCount(postData.unread_count || 0)
+        setTeacherNotifItems(teacherData.data || [])
+        setTeacherUnreadCount(teacherData.unread || 0)
       } catch {
         if (!mounted) return
         setUnreadCount(0)
         setNotifItems([])
         setPostMentionItems([])
         setPostMentionsCount(0)
+        setTeacherNotifItems([])
+        setTeacherUnreadCount(0)
       }
     }
 
@@ -214,7 +231,25 @@ export default function Topbar() {
       mounted = false
       window.clearInterval(id)
     }
-  }, [])
+  }, [loc.pathname])
+
+  useEffect(() => {
+    if (!notifOpen) return
+    if (!loc.pathname.startsWith('/neuronetix')) return
+    if (teacherUnreadCount <= 0) return
+
+    void (async () => {
+      try {
+        await markTeacherNotificationsReadAll()
+        const data = await listTeacherNotifications()
+        setTeacherNotifItems(data.data || [])
+        setTeacherUnreadCount(data.unread || 0)
+        setUnreadCount((prev) => Math.max(0, prev - teacherUnreadCount))
+      } catch {
+        // noop
+      }
+    })()
+  }, [notifOpen, loc.pathname, teacherUnreadCount])
 
   useEffect(() => {
     const ping = () => {
@@ -233,7 +268,7 @@ export default function Topbar() {
         getChatNotifications(),
         getPostMentionNotifications(),
       ])
-      setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0))
+      setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0) + teacherUnreadCount)
       setNotifItems(chatData.items || [])
       setPostMentionItems(postData.items || [])
       setPostMentionsCount(postData.unread_count || 0)
@@ -257,7 +292,7 @@ export default function Topbar() {
         getChatNotifications(),
         getPostMentionNotifications(),
       ])
-      setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0))
+      setUnreadCount((chatData.unread_count || 0) + (postData.unread_count || 0) + teacherUnreadCount)
       setNotifItems(chatData.items || [])
       setPostMentionItems(postData.items || [])
       setPostMentionsCount(postData.unread_count || 0)
@@ -272,6 +307,34 @@ export default function Topbar() {
     }
 
     nav(`/${currentApp}/dashboard`)
+  }
+
+  const openTeacherNotification = async (item: TeacherNotificationItem) => {
+    try {
+      if (!item.read_at) {
+        await markTeacherNotificationRead(item.id)
+      }
+
+      const data = await listTeacherNotifications()
+      setTeacherNotifItems(data.data || [])
+      setTeacherUnreadCount(data.unread || 0)
+    } catch {
+      // noop
+    }
+
+    setNotifOpen(false)
+
+    if (item.quiz_id) {
+      nav('/neuronetix/student/quizzes')
+      return
+    }
+
+    if (item.task_id) {
+      nav('/neuronetix/student/tasks')
+      return
+    }
+
+    nav('/neuronetix/student')
   }
 
   const toggleSidebar = () => {
@@ -322,8 +385,25 @@ export default function Topbar() {
               <div className="dropdown-menu">
                 <div className="dropdown-header"><strong>Powiadomienia</strong></div>
                 <div className="dropdown-sep" />
-                {postMentionItems.length === 0 && notifItems.length === 0 && (
+                {postMentionItems.length === 0 && notifItems.length === 0 && teacherNotifItems.length === 0 && (
                   <div className="muted small" style={{ padding: '8px 12px' }}>Brak nowych powiadomien</div>
+                )}
+
+                {teacherNotifItems.length > 0 && (
+                  <>
+                    <div className="small muted" style={{ padding: '8px 12px' }}>Neuronetix: {teacherUnreadCount} nowych</div>
+                    {teacherNotifItems.slice(0, 8).map((n) => (
+                      <button
+                        key={`teacher-notif-${n.id}`}
+                        className="dropdown-item"
+                        onClick={() => openTeacherNotification(n)}
+                      >
+                        <div><strong>{n.title}</strong></div>
+                        <div className="small muted">{n.message || 'Kliknij, aby przejsc'}</div>
+                      </button>
+                    ))}
+                    <div className="dropdown-sep" />
+                  </>
                 )}
 
                 {postMentionItems.length > 0 && (

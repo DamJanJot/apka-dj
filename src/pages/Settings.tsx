@@ -28,6 +28,11 @@ const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'messages', label: 'Wiadomosci' },
     { id: 'friends', label: 'Znajomi' },
+    { id: 'teacher', label: 'Panel nauczyciela' },
+    { id: 'student', label: 'Panel ucznia' },
+    { id: 'student_tasks', label: 'Zadania ucznia' },
+    { id: 'student_quizzes', label: 'Quizy ucznia' },
+    { id: 'student_tests', label: 'Testy ucznia' },
     { id: 'docs', label: 'Documentation' },
   ],
   taskora: [

@@ -11,6 +11,7 @@ use App\Http\Controllers\OrbitumMakaoOnlineController;
 use App\Http\Controllers\OrbitumPostsController;
 use App\Http\Controllers\OptivioController;
 use App\Http\Controllers\TaskoraBridgeController;
+use App\Http\Controllers\TeacherPanelController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Models\OrbitumFriendship;
 use App\Models\LegacyUser;
@@ -268,6 +269,54 @@ Route::middleware(['auth:sanctum', 'role:manager,admin,owner', 'access:taskora']
     Route::post('/projects', [TaskoraBridgeController::class, 'createProject']);
     Route::get('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'tasks']);
     Route::post('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'createTask']);
+});
+
+// ---------- TEACHER PANEL ----------
+Route::middleware(['auth:sanctum', 'access:neuronetix'])->prefix('teacher')->group(function () {
+    Route::get('/overview', [TeacherPanelController::class, 'overview'])
+        ->middleware(['role:nauczyciel,teacher,admin,owner', 'access:neuronetix,teacher']);
+
+    Route::get('/tasks', [TeacherPanelController::class, 'tasks'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::post('/tasks', [TeacherPanelController::class, 'createTask'])
+        ->middleware(['role:nauczyciel,teacher,admin,owner', 'access:neuronetix,teacher']);
+    Route::patch('/tasks/{taskId}', [TeacherPanelController::class, 'updateTask'])
+        ->middleware(['role:nauczyciel,teacher,admin,owner', 'access:neuronetix,teacher']);
+    Route::delete('/tasks/{taskId}', [TeacherPanelController::class, 'deleteTask'])
+        ->middleware(['role:nauczyciel,teacher,admin,owner', 'access:neuronetix,teacher']);
+    Route::patch('/tasks/{taskId}/status', [TeacherPanelController::class, 'updateTaskStatus'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::get('/tasks/{taskId}/whiteboard-notes', [TeacherPanelController::class, 'taskWhiteboardNotes'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::post('/tasks/{taskId}/whiteboard-notes', [TeacherPanelController::class, 'saveTaskWhiteboardNote'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::delete('/tasks/{taskId}/whiteboard-notes/{noteId}', [TeacherPanelController::class, 'deleteTaskWhiteboardNote'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+
+    Route::get('/quizzes', [TeacherPanelController::class, 'quizzes'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::post('/quizzes', [TeacherPanelController::class, 'createQuiz'])
+        ->middleware(['role:nauczyciel,teacher,admin,owner', 'access:neuronetix,teacher']);
+    Route::get('/quizzes/{quizId}', [TeacherPanelController::class, 'quizDetail'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::delete('/quizzes/{quizId}', [TeacherPanelController::class, 'deleteQuiz'])
+        ->middleware(['role:nauczyciel,teacher,admin,owner', 'access:neuronetix,teacher']);
+    Route::post('/quizzes/{quizId}/submit', [TeacherPanelController::class, 'submitQuiz'])
+        ->middleware('role:uczen,student');
+
+    Route::get('/notifications', [TeacherPanelController::class, 'notifications'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::post('/notifications/read-all', [TeacherPanelController::class, 'markNotificationsReadAll'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::post('/notifications/{notificationId}/read', [TeacherPanelController::class, 'markNotificationRead'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+
+    Route::get('/quizzes/{quizId}/whiteboard-notes', [TeacherPanelController::class, 'quizWhiteboardNotes'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::post('/quizzes/{quizId}/whiteboard-notes', [TeacherPanelController::class, 'saveQuizWhiteboardNote'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::delete('/quizzes/{quizId}/whiteboard-notes/{noteId}', [TeacherPanelController::class, 'deleteQuizWhiteboardNote'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
 });
 
 // ---------- ADMIN ----------

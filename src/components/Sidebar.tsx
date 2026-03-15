@@ -15,6 +15,11 @@ type NavDef = {
 
 const NAV_DEFS: NavDef[] = [
   { id: 'dashboard', label: 'Dashboard', to: '/dashboard', title: 'Dashboard', icon: <LayoutDashboard className="nav-icon" size={18} /> },
+  { id: 'teacher', label: 'Panel nauczyciela', to: '/neuronetix/teacher', title: 'Panel nauczyciela', icon: <UsersRound className="nav-icon" size={18} /> },
+  { id: 'student', label: 'Panel ucznia', to: '/neuronetix/student', title: 'Panel ucznia', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'student_tasks', label: 'Zadania ucznia', to: '/neuronetix/student/tasks', title: 'Zadania ucznia', icon: <KanbanSquare className="nav-icon" size={18} /> },
+  { id: 'student_quizzes', label: 'Quizy ucznia', to: '/neuronetix/student/quizzes', title: 'Quizy ucznia', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'student_tests', label: 'Testy ucznia', to: '/neuronetix/student/tests', title: 'Testy ucznia', icon: <BookText className="nav-icon" size={18} /> },
   { id: 'users', label: 'Uzytkownicy', to: '/admin/users', title: 'Uzytkownicy', icon: <UsersRound className="nav-icon" size={18} /> },
   { id: 'roles', label: 'Role', to: '/admin/roles', title: 'Role', icon: <Settings className="nav-icon" size={18} /> },
   { id: 'assignments', label: 'Przypisania', to: '/admin/assignments', title: 'Przypisania', icon: <KanbanSquare className="nav-icon" size={18} /> },
@@ -33,7 +38,7 @@ const NAV_DEFS: NavDef[] = [
 
 const APP_NAV_ORDER: Record<AppKey, NavItemId[]> = {
   orbitum: ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-  neuronetix: ['dashboard', 'messages', 'friends', 'docs'],
+  neuronetix: ['dashboard', 'messages', 'friends', 'teacher', 'student', 'student_tasks', 'student_quizzes', 'student_tests', 'docs'],
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
@@ -76,6 +81,26 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
 
   if (navId === 'projects') {
     return `/${app}/projects`
+  }
+
+  if (navId === 'teacher') {
+    return `/${app}/teacher`
+  }
+
+  if (navId === 'student') {
+    return `/${app}/student`
+  }
+
+  if (navId === 'student_tasks') {
+    return `/${app}/student/tasks`
+  }
+
+  if (navId === 'student_quizzes') {
+    return `/${app}/student/quizzes`
+  }
+
+  if (navId === 'student_tests') {
+    return `/${app}/student/tests`
   }
 
   if (navId === 'users') {
