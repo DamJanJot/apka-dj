@@ -12,6 +12,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'role' => \App\Http\Middleware\RequireRole::class,
+        ]);
+
         // Dla SPA (cookie) – upewnij się, że żądania z frontu są traktowane jako "stateful"
         $middleware->appendToGroup(
             'api',

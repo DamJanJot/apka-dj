@@ -36,6 +36,10 @@ export type Me = {
   nick?: string
   rola?: string
   avatar?: string | null
+  access?: {
+    apps: string[]
+    panels: Record<string, string[]>
+  }
 }
 
 export type ChatUser = {
@@ -250,6 +254,93 @@ export type OptivioOverview = {
   doneTasksCount: number
   syncPendingCount: number
   deadlines: OptivioDeadlineEvent[]
+}
+
+export type RoleChangeLogPerson = {
+  id: number
+  email: string | null
+  imie: string | null
+  nick: string | null
+}
+
+export type RoleChangeLogItem = {
+  id: number
+  old_role: string | null
+  new_role: string
+  reason: string | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+  actor: RoleChangeLogPerson
+  target: RoleChangeLogPerson
+}
+
+export type RoleChangeLogsResponse = {
+  data: RoleChangeLogItem[]
+  meta: {
+    page: number
+    per_page: number
+    total: number
+    last_page: number
+  }
+}
+
+export type AdminUserListItem = {
+  id: number
+  email: string
+  imie: string | null
+  nazwisko: string | null
+  nick: string | null
+  rola: string
+}
+
+export type AdminUsersResponse = {
+  data: AdminUserListItem[]
+  meta: {
+    page: number
+    per_page: number
+    total: number
+    last_page: number
+  }
+}
+
+export type AdminRoleItem = {
+  key: string
+  name: string
+  description: string | null
+  is_system: boolean
+}
+
+export type AdminRolesResponse = {
+  data: AdminRoleItem[]
+}
+
+export type CreateAdminUserPayload = {
+  imie: string
+  email: string
+  password: string
+  password_confirmation: string
+  nick?: string
+  role?: string
+}
+
+export type CreateAdminRolePayload = {
+  key: string
+  name: string
+  description?: string
+}
+
+export type UpdateAdminRolePayload = {
+  name?: string
+  description?: string
+}
+
+export type AdminAssignmentsResponse = {
+  roles: AdminRoleItem[]
+  apps: string[]
+  panels: Record<string, string[]>
+  app_assignments: Record<string, string[]>
+  panel_assignments: Record<string, Record<string, string[]>>
 }
 
 export async function getMe(): Promise<Me> {
@@ -565,4 +656,94 @@ export async function updateOptivioTaskoraSync(
 export async function getOptivioOverview(): Promise<OptivioOverview> {
   const r = await api.get('/api/optivio/overview')
   return r.data
+}
+
+export async function listAdminRoleChangeLogs(params?: {
+  page?: number
+  perPage?: number
+  actorUserId?: number
+  targetUserId?: number
+  newRole?: string
+}): Promise<RoleChangeLogsResponse> {
+  const r = await api.get('/api/admin/role-change-logs', {
+    params: {
+      page: params?.page,
+      per_page: params?.perPage,
+      actor_user_id: params?.actorUserId,
+      target_user_id: params?.targetUserId,
+      new_role: params?.newRole,
+    },
+  })
+  return r.data
+}
+
+export async function listAdminUsers(params?: {
+  page?: number
+  perPage?: number
+  q?: string
+  role?: string
+}): Promise<AdminUsersResponse> {
+  const r = await api.get('/api/admin/users', {
+    params: {
+      page: params?.page,
+      per_page: params?.perPage,
+      q: params?.q,
+      role: params?.role,
+    },
+  })
+  return r.data
+}
+
+export async function listAdminRoles(): Promise<AdminRolesResponse> {
+  const r = await api.get('/api/admin/roles')
+  return r.data
+}
+
+export async function createAdminUser(payload: CreateAdminUserPayload): Promise<void> {
+  await api.post('/api/admin/users', payload)
+}
+
+export async function createAdminRole(payload: CreateAdminRolePayload): Promise<void> {
+  await api.post('/api/admin/roles', payload)
+}
+
+export async function updateAdminRole(key: string, payload: UpdateAdminRolePayload): Promise<void> {
+  await api.patch(`/api/admin/roles/${encodeURIComponent(key)}`, payload)
+}
+
+export async function deleteAdminRole(key: string): Promise<void> {
+  await api.delete(`/api/admin/roles/${encodeURIComponent(key)}`)
+}
+
+export async function getAdminAssignments(): Promise<AdminAssignmentsResponse> {
+  const r = await api.get('/api/admin/assignments')
+  return r.data
+}
+
+export async function updateAdminRoleApps(key: string, apps: string[]): Promise<void> {
+  await api.patch(`/api/admin/roles/${encodeURIComponent(key)}/app-assignments`, { apps })
+}
+
+export async function updateAdminRolePanels(key: string, panels: Record<string, string[]>): Promise<void> {
+  await api.patch(`/api/admin/roles/${encodeURIComponent(key)}/panel-assignments`, { panels })
+}
+
+export async function listAdminUserRoleHistory(
+  userId: number,
+  params?: { page?: number; perPage?: number },
+): Promise<RoleChangeLogsResponse> {
+  const r = await api.get(`/api/admin/users/${userId}/role-history`, {
+    params: {
+      page: params?.page,
+      per_page: params?.perPage,
+    },
+  })
+  return r.data
+}
+
+export async function updateAdminUserRole(userId: number, role: string, reason?: string): Promise<void> {
+  await api.patch(`/api/admin/users/${userId}/role`, {
+    role,
+    reason: reason || null,
+  })
 }

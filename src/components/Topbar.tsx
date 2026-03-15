@@ -28,11 +28,11 @@ const TITLE: Record<string, string> = {
   '/neuronetix': 'Neuronetix',
   '/taskora': 'Taskora',
   '/optivio': 'Optivio',
+  '/admin': 'Admin',
   '/grafiki': 'Grafiki',
   '/profile': 'Profil',
   '/profile/edit': 'Edytuj profil',
   '/settings': 'Ustawienia konta',
-  '/sidebar-settings': 'Panel boczny',
   '/docs': 'Documentation',
 }
 
@@ -69,6 +69,15 @@ export default function Topbar() {
       if (loc.pathname.endsWith('/docs')) return 'Documentation'
     }
 
+    if (loc.pathname.startsWith('/admin/')) {
+      if (loc.pathname.endsWith('/dashboard')) return 'Admin Panel'
+      if (loc.pathname.endsWith('/users')) return 'Uzytkownicy'
+      if (loc.pathname.endsWith('/roles')) return 'Role'
+      if (loc.pathname.endsWith('/assignments')) return 'Przypisania'
+      if (loc.pathname.endsWith('/sidebar-settings')) return 'Panel boczny'
+      if (loc.pathname.endsWith('/docs')) return 'Documentation'
+    }
+
     if (loc.pathname.startsWith('/grafiki/')) {
       if (loc.pathname.endsWith('/dashboard')) return 'Grafiki'
       if (loc.pathname.endsWith('/messages')) return 'Wiadomosci'
@@ -100,6 +109,10 @@ export default function Topbar() {
       return { appName: 'Grafiki', favicon: '/chic-favicon.ico' }
     }
 
+    if (loc.pathname.startsWith('/admin')) {
+      return { appName: 'Admin', favicon: '/neuronetix-logo.png' }
+    }
+
     return { appName: 'Orbitum', favicon: '/dj-api/public/uploads/orbitum-logo.png' }
   }, [loc.pathname])
 
@@ -120,6 +133,7 @@ export default function Topbar() {
   }, [title, projectMeta])
 
   const [isMobile, setIsMobile] = useState(window.matchMedia(MQ_MOBILE).matches)
+  const [isTinyScreen, setIsTinyScreen] = useState(window.matchMedia('(max-width: 560px)').matches)
   const [collapsed, setCollapsed] = useState(document.body.classList.contains('sidebar-collapsed'))
   const [mobileOpen, setMobileOpen] = useState(!!document.getElementById('sidebar')?.classList.contains('open'))
   const [menuOpen, setMenuOpen] = useState(false)
@@ -139,6 +153,14 @@ export default function Topbar() {
     setIsMobile(mq.matches)
     mq.addEventListener('change', h)
     return () => mq.removeEventListener('change', h)
+  }, [])
+
+  useEffect(() => {
+    const tinyMq = window.matchMedia('(max-width: 560px)')
+    const h = (e: MediaQueryListEvent) => setIsTinyScreen(e.matches)
+    setIsTinyScreen(tinyMq.matches)
+    tinyMq.addEventListener('change', h)
+    return () => tinyMq.removeEventListener('change', h)
   }, [])
 
   useEffect(() => {
@@ -219,7 +241,7 @@ export default function Topbar() {
     }
 
     setNotifOpen(false)
-    if (currentApp === 'orbitum') {
+    if (currentApp === 'orbitum' || currentApp === 'admin') {
       nav(`/messages?user=${fromUserId}`)
       return
     }
@@ -243,7 +265,7 @@ export default function Topbar() {
     }
 
     setNotifOpen(false)
-    if (currentApp === 'orbitum') {
+    if (currentApp === 'orbitum' || currentApp === 'admin') {
       nav('/board')
       return
     }
@@ -279,7 +301,7 @@ export default function Topbar() {
     <>
       {isMobile && mobileOpen && <div className="scrim show" onClick={toggleSidebar} />}
 
-      <header className="topbar grid3" style={headerStyle}>
+      <header className={`topbar grid3${isMobile && mobileOpen && isTinyScreen ? ' topbar-mobile-open' : ''}`} style={headerStyle}>
         <div className="tb-left">
           <button className="btn-icon" aria-label="Toggle sidebar" onClick={toggleSidebar} title="Pokaż/ukryj nawigację" style={arrowStyle}>
             {ArrowIcon}

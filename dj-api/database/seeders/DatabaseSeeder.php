@@ -9,6 +9,8 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
+            NeuroNetixRoleSeeder::class,
+            NeuroNetixAssignmentSeeder::class,
             NewsSeeder::class,
             RateSeeder::class,
             CryptoSeeder::class,
