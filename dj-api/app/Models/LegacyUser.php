@@ -15,7 +15,7 @@ class LegacyUser extends Authenticatable
 
     private const AVAILABLE_PANELS = [
         'orbitum' => ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-        'neuronetix' => ['dashboard', 'messages', 'friends', 'teacher', 'student', 'student_tasks', 'student_quizzes', 'student_tests', 'docs'],
+        'neuronetix' => ['dashboard', 'messages', 'friends', 'teacher', 'student', 'student_tasks', 'student_quizzes', 'student_tests', 'subjects', 'subject_math', 'subject_polish', 'subject_english', 'subject_it', 'docs'],
         'taskora' => ['dashboard', 'projects', 'messages', 'friends', 'docs'],
         'optivio' => ['dashboard', 'projects', 'messages', 'friends', 'docs'],
         'chic' => ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
@@ -196,6 +196,13 @@ class LegacyUser extends Authenticatable
                 $panelList = array_values(array_filter(
                     $panelList,
                     static fn (string $panel): bool => !in_array($panel, ['student', 'student_tasks', 'student_quizzes', 'student_tests'], true)
+                ));
+            }
+
+            if ($appKey === 'neuronetix' && !in_array($role, ['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner'], true)) {
+                $panelList = array_values(array_filter(
+                    $panelList,
+                    static fn (string $panel): bool => !in_array($panel, ['subjects', 'subject_math', 'subject_polish', 'subject_english', 'subject_it'], true)
                 ));
             }
 

@@ -33,6 +33,11 @@ const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
     { id: 'student_tasks', label: 'Zadania ucznia' },
     { id: 'student_quizzes', label: 'Quizy ucznia' },
     { id: 'student_tests', label: 'Testy ucznia' },
+    { id: 'subjects', label: 'Przedmioty' },
+    { id: 'subject_math', label: 'Matematyka' },
+    { id: 'subject_polish', label: 'Jezyk polski' },
+    { id: 'subject_english', label: 'Jezyk angielski' },
+    { id: 'subject_it', label: 'Informatyka' },
     { id: 'docs', label: 'Documentation' },
   ],
   taskora: [

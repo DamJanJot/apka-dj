@@ -15,6 +15,8 @@ import StudentPanel from '@/pages/StudentPanel'
 import StudentTasksPage from '@/pages/StudentTasksPage'
 import StudentQuizzesPage from '@/pages/StudentQuizzesPage'
 import StudentTestsPage from '@/pages/StudentTestsPage'
+import StudentSubjectsPage from '@/pages/StudentSubjectsPage'
+import StudentSubjectDetailPage from '@/pages/StudentSubjectDetailPage'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminUsers from '@/pages/AdminUsers'
 import AdminRoles from '@/pages/AdminRoles'
@@ -167,6 +169,22 @@ export default function App() {
           element={
             <AppPanelOnly app="neuronetix" panel="student_tests" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
               <StudentTestsPage />
+            </AppPanelOnly>
+          }
+        />
+        <Route
+          path="neuronetix/subjects"
+          element={
+            <AppPanelOnly app="neuronetix" panel="subjects" allowedRoles={['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner']}>
+              <StudentSubjectsPage />
+            </AppPanelOnly>
+          }
+        />
+        <Route
+          path="neuronetix/subjects/:subjectKey"
+          element={
+            <AppPanelOnly app="neuronetix" panel="subjects" allowedRoles={['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner']}>
+              <StudentSubjectDetailPage />
             </AppPanelOnly>
           }
         />

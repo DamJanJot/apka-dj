@@ -20,6 +20,11 @@ const NAV_DEFS: NavDef[] = [
   { id: 'student_tasks', label: 'Zadania ucznia', to: '/neuronetix/student/tasks', title: 'Zadania ucznia', icon: <KanbanSquare className="nav-icon" size={18} /> },
   { id: 'student_quizzes', label: 'Quizy ucznia', to: '/neuronetix/student/quizzes', title: 'Quizy ucznia', icon: <BookText className="nav-icon" size={18} /> },
   { id: 'student_tests', label: 'Testy ucznia', to: '/neuronetix/student/tests', title: 'Testy ucznia', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'subjects', label: 'Przedmioty', to: '/neuronetix/subjects', title: 'Przedmioty', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'subject_math', label: 'Matematyka', to: '/neuronetix/subjects/matematyka', title: 'Matematyka', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'subject_polish', label: 'Jezyk polski', to: '/neuronetix/subjects/jezyk-polski', title: 'Jezyk polski', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'subject_english', label: 'Jezyk angielski', to: '/neuronetix/subjects/jezyk-angielski', title: 'Jezyk angielski', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'subject_it', label: 'Informatyka', to: '/neuronetix/subjects/informatyka', title: 'Informatyka', icon: <BookText className="nav-icon" size={18} /> },
   { id: 'users', label: 'Uzytkownicy', to: '/admin/users', title: 'Uzytkownicy', icon: <UsersRound className="nav-icon" size={18} /> },
   { id: 'roles', label: 'Role', to: '/admin/roles', title: 'Role', icon: <Settings className="nav-icon" size={18} /> },
   { id: 'assignments', label: 'Przypisania', to: '/admin/assignments', title: 'Przypisania', icon: <KanbanSquare className="nav-icon" size={18} /> },
@@ -38,7 +43,7 @@ const NAV_DEFS: NavDef[] = [
 
 const APP_NAV_ORDER: Record<AppKey, NavItemId[]> = {
   orbitum: ['dashboard', 'calendar', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-  neuronetix: ['dashboard', 'messages', 'friends', 'teacher', 'student', 'student_tasks', 'student_quizzes', 'student_tests', 'docs'],
+  neuronetix: ['dashboard', 'messages', 'friends', 'teacher', 'student', 'student_tasks', 'student_quizzes', 'student_tests', 'subjects', 'subject_math', 'subject_polish', 'subject_english', 'subject_it', 'docs'],
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
@@ -103,6 +108,26 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
     return `/${app}/student/tests`
   }
 
+  if (navId === 'subjects') {
+    return `/${app}/subjects`
+  }
+
+  if (navId === 'subject_math') {
+    return `/${app}/subjects/matematyka`
+  }
+
+  if (navId === 'subject_polish') {
+    return `/${app}/subjects/jezyk-polski`
+  }
+
+  if (navId === 'subject_english') {
+    return `/${app}/subjects/jezyk-angielski`
+  }
+
+  if (navId === 'subject_it') {
+    return `/${app}/subjects/informatyka`
+  }
+
   if (navId === 'users') {
     return `/${app}/users`
   }
@@ -143,6 +168,8 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
 }
 
 export default function Sidebar() {
+    const navSubItemIds: NavItemId[] = ['student_tasks', 'student_quizzes', 'student_tests', 'subject_math', 'subject_polish', 'subject_english', 'subject_it']
+
   const { user } = useAuth()
   const location = useLocation()
   const [incomingCount, setIncomingCount] = useState(0)
@@ -253,7 +280,7 @@ export default function Sidebar() {
 
       <nav className="side-nav">
         {visibleMainNav.map((item) => (
-          <NavLink key={item.id} to={item.id === 'dashboard' ? startPath : item.to} title={item.title} className="nav-item">
+          <NavLink key={item.id} to={item.id === 'dashboard' ? startPath : item.to} title={item.title} className={`nav-item${navSubItemIds.includes(item.id) ? ' nav-subitem' : ''}`}>
             {item.icon}
             <span className="link-text">{item.label}</span>
             {item.id === 'friends' && incomingCount > 0 && <span className="nav-badge">{incomingCount}</span>}
