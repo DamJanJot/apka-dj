@@ -411,6 +411,111 @@ export type TeacherOverview = {
   warning?: string
 }
 
+export type TeacherTaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled'
+
+export type TeacherTaskItem = {
+  id: number
+  created_by_user_id: number
+  assigned_to_user_id: number
+  title: string
+  description: string | null
+  due_date: string | null
+  status: TeacherTaskStatus
+  created_at: string
+  updated_at: string
+  creator: {
+    imie: string | null
+    nick: string | null
+    email: string | null
+  }
+  assignee: {
+    imie: string | null
+    nick: string | null
+    email: string | null
+  }
+}
+
+export type TeacherTasksResponse = {
+  data: TeacherTaskItem[]
+  meta: {
+    total: number
+  }
+}
+
+export type TeacherNotificationItem = {
+  id: number
+  type: string
+  title: string
+  message: string | null
+  task_id: number | null
+  quiz_id: number | null
+  read_at: string | null
+  created_at: string
+  from: {
+    id: number | null
+    imie: string | null
+    nick: string | null
+    email: string | null
+  }
+}
+
+export type TeacherNotificationsResponse = {
+  data: TeacherNotificationItem[]
+  unread: number
+}
+
+export type TeacherQuizListItem = {
+  id: number
+  title: string
+  description: string | null
+  due_date: string | null
+  is_active: boolean
+  questions_count?: number
+  assigned_count?: number
+  assignment_status?: string
+  score?: number | null
+  max_score?: number | null
+  submitted_at?: string | null
+  teacher?: {
+    imie: string | null
+    nick: string | null
+    email: string | null
+  }
+}
+
+export type TeacherQuizQuestion = {
+  id: number
+  position: number
+  question_text: string
+  question_type: 'text' | 'single_choice'
+  options: string[]
+  points: number
+  correct_answer: string | null
+}
+
+export type TeacherQuizDetail = {
+  quiz: {
+    id: number
+    title: string
+    description: string | null
+    due_date: string | null
+    is_active: boolean
+    questions: TeacherQuizQuestion[]
+  }
+}
+
+export type TeacherWhiteboardNote = {
+  id: number
+  quiz_id: number
+  question_id: number | null
+  user_id: number
+  text: string | null
+  pos_x: number
+  pos_y: number
+  color: string
+  updated_at: string
+}
+
 export type CreateAdminRelationPayload = {
   supervisor_user_id: number
   subordinate_user_id: number
@@ -832,6 +937,120 @@ export async function deleteAdminRelation(relationId: number): Promise<void> {
 export async function getTeacherOverview(): Promise<TeacherOverview> {
   const r = await api.get('/api/teacher/overview')
   return r.data
+}
+
+export async function listTeacherTasks(params?: {
+  status?: TeacherTaskStatus
+  studentUserId?: number
+}): Promise<TeacherTasksResponse> {
+  const r = await api.get('/api/teacher/tasks', {
+    params: {
+      status: params?.status,
+      student_user_id: params?.studentUserId,
+    },
+  })
+  return r.data
+}
+
+export async function createTeacherTask(payload: {
+  assigned_to_user_id: number
+  title: string
+  description?: string
+  due_date?: string | null
+  status?: TeacherTaskStatus
+}): Promise<void> {
+  await api.post('/api/teacher/tasks', payload)
+}
+
+export async function updateTeacherTask(taskId: number, payload: {
+  title?: string
+  description?: string
+  due_date?: string | null
+  status?: TeacherTaskStatus
+}): Promise<void> {
+  await api.patch(`/api/teacher/tasks/${taskId}`, payload)
+}
+
+export async function updateTeacherTaskStatus(taskId: number, status: TeacherTaskStatus): Promise<void> {
+  await api.patch(`/api/teacher/tasks/${taskId}/status`, { status })
+}
+
+export async function deleteTeacherTask(taskId: number): Promise<void> {
+  await api.delete(`/api/teacher/tasks/${taskId}`)
+}
+
+export async function listTeacherNotifications(): Promise<TeacherNotificationsResponse> {
+  const r = await api.get('/api/teacher/notifications')
+  return r.data
+}
+
+export async function markTeacherNotificationRead(notificationId: number): Promise<void> {
+  await api.post(`/api/teacher/notifications/${notificationId}/read`)
+}
+
+export async function markTeacherNotificationsReadAll(): Promise<void> {
+  await api.post('/api/teacher/notifications/read-all')
+}
+
+export async function listTeacherQuizzes(): Promise<{ data: TeacherQuizListItem[] }> {
+  const r = await api.get('/api/teacher/quizzes')
+  return r.data
+}
+
+export async function getTeacherQuizDetail(quizId: number): Promise<TeacherQuizDetail> {
+  const r = await api.get(`/api/teacher/quizzes/${quizId}`)
+  return r.data
+}
+
+export async function createTeacherQuiz(payload: {
+  title: string
+  description?: string
+  due_date?: string | null
+  is_active?: boolean
+  student_user_ids?: number[]
+  questions: Array<{
+    question_text: string
+    question_type?: 'text' | 'single_choice'
+    options?: string[]
+    correct_answer?: string
+    points?: number
+  }>
+}): Promise<void> {
+  await api.post('/api/teacher/quizzes', payload)
+}
+
+export async function deleteTeacherQuiz(quizId: number): Promise<void> {
+  await api.delete(`/api/teacher/quizzes/${quizId}`)
+}
+
+export async function submitTeacherQuiz(quizId: number, answers: Record<string, string>): Promise<{ ok: boolean; score: number; max_score: number }> {
+  const r = await api.post(`/api/teacher/quizzes/${quizId}/submit`, { answers })
+  return r.data
+}
+
+export async function listTeacherQuizWhiteboardNotes(quizId: number, questionId?: number): Promise<{ data: TeacherWhiteboardNote[] }> {
+  const r = await api.get(`/api/teacher/quizzes/${quizId}/whiteboard-notes`, {
+    params: {
+      question_id: questionId,
+    },
+  })
+  return r.data
+}
+
+export async function saveTeacherQuizWhiteboardNote(quizId: number, payload: {
+  id?: number
+  question_id?: number
+  text?: string
+  pos_x?: number
+  pos_y?: number
+  color?: string
+}): Promise<{ ok: boolean; id: number }> {
+  const r = await api.post(`/api/teacher/quizzes/${quizId}/whiteboard-notes`, payload)
+  return r.data
+}
+
+export async function deleteTeacherQuizWhiteboardNote(quizId: number, noteId: number): Promise<void> {
+  await api.delete(`/api/teacher/quizzes/${quizId}/whiteboard-notes/${noteId}`)
 }
 
 export async function listAdminUserRoleHistory(
