@@ -149,7 +149,7 @@ export default function App() {
         <Route
           path="neuronetix/student/tasks"
           element={
-            <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+            <AppPanelOnly app="neuronetix" panel="student_tasks" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
               <StudentTasksPage />
             </AppPanelOnly>
           }
@@ -157,7 +157,7 @@ export default function App() {
         <Route
           path="neuronetix/student/quizzes"
           element={
-            <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+            <AppPanelOnly app="neuronetix" panel="student_quizzes" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
               <StudentQuizzesPage />
             </AppPanelOnly>
           }
@@ -165,7 +165,7 @@ export default function App() {
         <Route
           path="neuronetix/student/tests"
           element={
-            <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+            <AppPanelOnly app="neuronetix" panel="student_tests" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
               <StudentTestsPage />
             </AppPanelOnly>
           }
