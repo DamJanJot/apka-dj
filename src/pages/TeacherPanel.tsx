@@ -72,6 +72,7 @@ export default function TeacherPanel() {
   const [taskTitle, setTaskTitle] = useState('')
   const [taskDescription, setTaskDescription] = useState('')
   const [taskDueDate, setTaskDueDate] = useState('')
+  const [taskHasWhiteboard, setTaskHasWhiteboard] = useState(false)
   const [taskDraftById, setTaskDraftById] = useState<Record<number, TeacherTaskStatus>>({})
 
   const [quizTitle, setQuizTitle] = useState('')
@@ -80,14 +81,14 @@ export default function TeacherPanel() {
   const [quizStudentIds, setQuizStudentIds] = useState<number[]>([])
   const [quizQuestions, setQuizQuestions] = useState<Array<{
     question_text: string
-    question_type: 'text' | 'single_choice'
+    question_type: 'text' | 'single_choice' | 'open_with_whiteboard'
     options: string
     correct_answer: string
     points: number
   }>>([{ question_text: '', question_type: 'text', options: '', correct_answer: '', points: 1 }])
   const [quizToSolveId, setQuizToSolveId] = useState('')
   const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({})
-  const [quizQuestionsToSolve, setQuizQuestionsToSolve] = useState<Array<{ id: number; question_text: string; question_type: 'text' | 'single_choice'; options: string[] }>>([])
+  const [quizQuestionsToSolve, setQuizQuestionsToSolve] = useState<Array<{ id: number; question_text: string; question_type: 'text' | 'single_choice' | 'open_with_whiteboard'; options: string[] }>>([])
 
   const [loading, setLoading] = useState(false)
   const [tasksLoading, setTasksLoading] = useState(false)
@@ -240,10 +241,12 @@ export default function TeacherPanel() {
           description: taskDescription.trim() || undefined,
           due_date: taskDueDate || null,
           status: 'todo',
+          has_whiteboard: taskHasWhiteboard,
         })
         setTaskTitle('')
         setTaskDescription('')
         setTaskDueDate('')
+        setTaskHasWhiteboard(false)
         await loadTasks()
         setNotice('Zadanie zostalo utworzone i wyslano powiadomienie do ucznia.')
       } catch (requestError) {
@@ -579,6 +582,10 @@ export default function TeacherPanel() {
             <input className="admin-field" value={taskTitle} onChange={(event) => setTaskTitle(event.target.value)} placeholder="Tytul zadania" style={{ minWidth: 220 }} />
             <input className="admin-field" value={taskDescription} onChange={(event) => setTaskDescription(event.target.value)} placeholder="Opis" style={{ minWidth: 260 }} />
             <input className="admin-field" type="date" value={taskDueDate} onChange={(event) => setTaskDueDate(event.target.value)} />
+            <label className="row" style={{ padding: '8px 10px', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10 }}>
+              <input type="checkbox" checked={taskHasWhiteboard} onChange={(event) => setTaskHasWhiteboard(event.target.checked)} />
+              <span>Tablica do zadania otwartego</span>
+            </label>
             <button type="submit" className="btn btn-primary" disabled={savingTask}>{savingTask ? 'Zapisywanie...' : 'Utworz zadanie'}</button>
           </form>
         </div>}
@@ -590,9 +597,8 @@ export default function TeacherPanel() {
               <select className="admin-field" value={taskStatusFilter} onChange={(event) => setTaskStatusFilter((event.target.value || '') as TeacherTaskStatus | '')}>
                 <option value="">Wszystkie statusy</option>
                 <option value="todo">todo</option>
-                <option value="in_progress">in_progress</option>
-                <option value="done">done</option>
-                <option value="cancelled">cancelled</option>
+                <option value="workflow">workflow</option>
+                <option value="submitted">submitted</option>
               </select>
             </div>
           </div>
@@ -614,16 +620,15 @@ export default function TeacherPanel() {
                   <tr key={task.id}>
                     <td>
                       <div>{task.title}</div>
-                      <small className="muted">{task.description || '-'}</small>
+                      <small className="muted">{task.description || '-'} {task.has_whiteboard ? '| tablica' : ''}</small>
                     </td>
                     <td>{task.assignee.imie || task.assignee.nick || task.assignee.email || `#${task.assigned_to_user_id}`}</td>
                     <td>{task.due_date || '-'}</td>
                     <td>
                       <select className="admin-field" value={taskDraftById[task.id] || task.status} onChange={(event) => setTaskDraftById((prev) => ({ ...prev, [task.id]: event.target.value as TeacherTaskStatus }))}>
                         <option value="todo">todo</option>
-                        <option value="in_progress">in_progress</option>
-                        <option value="done">done</option>
-                        <option value="cancelled">cancelled</option>
+                        <option value="workflow">workflow</option>
+                        <option value="submitted">submitted</option>
                       </select>
                     </td>
                     <td>
@@ -704,9 +709,10 @@ export default function TeacherPanel() {
               <div key={index} className="assignment-section" style={{ marginBottom: 8 }}>
                 <div className="row" style={{ flexWrap: 'wrap' }}>
                   <input className="admin-field" value={question.question_text} onChange={(event) => setQuizQuestions((prev) => prev.map((q, i) => i === index ? { ...q, question_text: event.target.value } : q))} placeholder={`Pytanie ${index + 1}`} style={{ minWidth: 280 }} />
-                  <select className="admin-field" value={question.question_type} onChange={(event) => setQuizQuestions((prev) => prev.map((q, i) => i === index ? { ...q, question_type: event.target.value as 'text' | 'single_choice' } : q))}>
+                  <select className="admin-field" value={question.question_type} onChange={(event) => setQuizQuestions((prev) => prev.map((q, i) => i === index ? { ...q, question_type: event.target.value as 'text' | 'single_choice' | 'open_with_whiteboard' } : q))}>
                     <option value="text">Otwarta</option>
                     <option value="single_choice">Jednokrotnego wyboru</option>
+                    <option value="open_with_whiteboard">Otwarta + tablica</option>
                   </select>
                   <input className="admin-field" type="number" min={1} max={100} value={question.points} onChange={(event) => setQuizQuestions((prev) => prev.map((q, i) => i === index ? { ...q, points: Number(event.target.value) || 1 } : q))} placeholder="Punkty" style={{ width: 120 }} />
                 </div>

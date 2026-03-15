@@ -286,6 +286,12 @@ Route::middleware(['auth:sanctum', 'access:neuronetix'])->prefix('teacher')->gro
         ->middleware(['role:nauczyciel,teacher,admin,owner', 'access:neuronetix,teacher']);
     Route::patch('/tasks/{taskId}/status', [TeacherPanelController::class, 'updateTaskStatus'])
         ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::get('/tasks/{taskId}/whiteboard-notes', [TeacherPanelController::class, 'taskWhiteboardNotes'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::post('/tasks/{taskId}/whiteboard-notes', [TeacherPanelController::class, 'saveTaskWhiteboardNote'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
+    Route::delete('/tasks/{taskId}/whiteboard-notes/{noteId}', [TeacherPanelController::class, 'deleteTaskWhiteboardNote'])
+        ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');
 
     Route::get('/quizzes', [TeacherPanelController::class, 'quizzes'])
         ->middleware('role:nauczyciel,teacher,admin,owner,uczen,student');

@@ -411,7 +411,7 @@ export type TeacherOverview = {
   warning?: string
 }
 
-export type TeacherTaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled'
+export type TeacherTaskStatus = 'todo' | 'workflow' | 'submitted'
 
 export type TeacherTaskItem = {
   id: number
@@ -421,6 +421,7 @@ export type TeacherTaskItem = {
   description: string | null
   due_date: string | null
   status: TeacherTaskStatus
+  has_whiteboard: boolean
   created_at: string
   updated_at: string
   creator: {
@@ -487,7 +488,7 @@ export type TeacherQuizQuestion = {
   id: number
   position: number
   question_text: string
-  question_type: 'text' | 'single_choice'
+  question_type: 'text' | 'single_choice' | 'open_with_whiteboard'
   options: string[]
   points: number
   correct_answer: string | null
@@ -508,6 +509,17 @@ export type TeacherWhiteboardNote = {
   id: number
   quiz_id: number
   question_id: number | null
+  user_id: number
+  text: string | null
+  pos_x: number
+  pos_y: number
+  color: string
+  updated_at: string
+}
+
+export type TeacherTaskWhiteboardNote = {
+  id: number
+  task_id: number
   user_id: number
   text: string | null
   pos_x: number
@@ -958,6 +970,7 @@ export async function createTeacherTask(payload: {
   description?: string
   due_date?: string | null
   status?: TeacherTaskStatus
+  has_whiteboard?: boolean
 }): Promise<void> {
   await api.post('/api/teacher/tasks', payload)
 }
@@ -967,6 +980,7 @@ export async function updateTeacherTask(taskId: number, payload: {
   description?: string
   due_date?: string | null
   status?: TeacherTaskStatus
+  has_whiteboard?: boolean
 }): Promise<void> {
   await api.patch(`/api/teacher/tasks/${taskId}`, payload)
 }
@@ -977,6 +991,26 @@ export async function updateTeacherTaskStatus(taskId: number, status: TeacherTas
 
 export async function deleteTeacherTask(taskId: number): Promise<void> {
   await api.delete(`/api/teacher/tasks/${taskId}`)
+}
+
+export async function listTeacherTaskWhiteboardNotes(taskId: number): Promise<{ data: TeacherTaskWhiteboardNote[] }> {
+  const r = await api.get(`/api/teacher/tasks/${taskId}/whiteboard-notes`)
+  return r.data
+}
+
+export async function saveTeacherTaskWhiteboardNote(taskId: number, payload: {
+  id?: number
+  text?: string
+  pos_x?: number
+  pos_y?: number
+  color?: string
+}): Promise<{ ok: boolean; id: number }> {
+  const r = await api.post(`/api/teacher/tasks/${taskId}/whiteboard-notes`, payload)
+  return r.data
+}
+
+export async function deleteTeacherTaskWhiteboardNote(taskId: number, noteId: number): Promise<void> {
+  await api.delete(`/api/teacher/tasks/${taskId}/whiteboard-notes/${noteId}`)
 }
 
 export async function listTeacherNotifications(): Promise<TeacherNotificationsResponse> {
@@ -1010,7 +1044,7 @@ export async function createTeacherQuiz(payload: {
   student_user_ids?: number[]
   questions: Array<{
     question_text: string
-    question_type?: 'text' | 'single_choice'
+    question_type?: 'text' | 'single_choice' | 'open_with_whiteboard'
     options?: string[]
     correct_answer?: string
     points?: number

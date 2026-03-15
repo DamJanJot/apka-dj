@@ -74,7 +74,7 @@ export default function Neuronetix() {
         <div className="card" style={{ marginTop: 14, marginBottom: 0 }}>
           <h2 style={{ marginTop: 0 }}>Panel ucznia</h2>
           <p className="muted" style={{ marginTop: 0 }}>
-            Twoje zadania, quizy i powiadomienia od nauczyciela w jednym miejscu.
+            Dashboard ucznia oraz osobne, wygodne strony do zadan i quizow.
           </p>
           <Link to="/neuronetix/student" className="btn btn-primary">
             Otworz panel ucznia

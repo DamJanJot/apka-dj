@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 
 class TeacherPanelController extends Controller
 {
-    private const TASK_STATUSES = ['todo', 'in_progress', 'done', 'cancelled'];
+    private const TASK_STATUSES = ['todo', 'workflow', 'submitted'];
 
     public function overview(Request $request)
     {
@@ -106,6 +106,7 @@ class TeacherPanelController extends Controller
                 't.description',
                 't.due_date',
                 't.status',
+                't.has_whiteboard',
                 't.created_at',
                 't.updated_at',
                 'c.imie as creator_imie',
@@ -127,7 +128,7 @@ class TeacherPanelController extends Controller
         }
 
         if (!empty($data['status'])) {
-            $query->where('t.status', strtolower(trim((string) $data['status'])));
+            $query->whereIn('t.status', $this->taskStatusQueryCandidates((string) $data['status']));
         }
 
         $rows = $query->get();
@@ -157,6 +158,7 @@ class TeacherPanelController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'due_date' => ['nullable', 'date'],
             'status' => ['nullable', 'string', 'max:24'],
+            'has_whiteboard' => ['nullable', 'boolean'],
         ]);
 
         $assignedTo = (int) $data['assigned_to_user_id'];
@@ -164,10 +166,7 @@ class TeacherPanelController extends Controller
             return response()->json(['message' => 'Brak uprawnien do przypisania zadania dla tego ucznia.'], 403);
         }
 
-        $status = strtolower(trim((string) ($data['status'] ?? 'todo')));
-        if (!in_array($status, self::TASK_STATUSES, true)) {
-            $status = 'todo';
-        }
+        $status = $this->normalizeTaskStatus((string) ($data['status'] ?? 'todo'));
 
         $now = now();
         $taskId = DB::table('neuronetix_teacher_tasks')->insertGetId([
@@ -177,6 +176,7 @@ class TeacherPanelController extends Controller
             'description' => trim((string) ($data['description'] ?? '')) ?: null,
             'due_date' => $data['due_date'] ?? null,
             'status' => $status,
+            'has_whiteboard' => (bool) ($data['has_whiteboard'] ?? false),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -218,6 +218,7 @@ class TeacherPanelController extends Controller
             'description' => ['nullable', 'string', 'max:5000'],
             'due_date' => ['nullable', 'date'],
             'status' => ['nullable', 'string', 'max:24'],
+            'has_whiteboard' => ['nullable', 'boolean'],
         ]);
 
         $update = ['updated_at' => now()];
@@ -231,10 +232,10 @@ class TeacherPanelController extends Controller
             $update['due_date'] = $data['due_date'] ?: null;
         }
         if (array_key_exists('status', $data)) {
-            $status = strtolower(trim((string) $data['status']));
-            if (in_array($status, self::TASK_STATUSES, true)) {
-                $update['status'] = $status;
-            }
+            $update['status'] = $this->normalizeTaskStatus((string) $data['status']);
+        }
+        if (array_key_exists('has_whiteboard', $data)) {
+            $update['has_whiteboard'] = (bool) $data['has_whiteboard'];
         }
 
         if (count($update) === 1) {
@@ -285,7 +286,7 @@ class TeacherPanelController extends Controller
             'status' => ['required', 'string', 'max:24'],
         ]);
 
-        $status = strtolower(trim((string) $data['status']));
+        $status = $this->normalizeTaskStatus((string) $data['status']);
         if (!in_array($status, self::TASK_STATUSES, true)) {
             return response()->json(['message' => 'Nieprawidlowy status zadania.'], 422);
         }
@@ -333,6 +334,141 @@ class TeacherPanelController extends Controller
         if (Schema::hasTable('neuronetix_teacher_notifications')) {
             DB::table('neuronetix_teacher_notifications')->where('task_id', $taskId)->delete();
         }
+
+        return response()->json(['ok' => true]);
+    }
+
+    public function taskWhiteboardNotes(Request $request, int $taskId)
+    {
+        if (!Schema::hasTable('neuronetix_task_whiteboard_notes')) {
+            return response()->json(['data' => []]);
+        }
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Brak autoryzacji.'], 401);
+        }
+
+        $task = DB::table('neuronetix_teacher_tasks')->where('id', $taskId)->first();
+        if (!$task) {
+            return response()->json(['message' => 'Zadanie nie zostalo znalezione.'], 404);
+        }
+
+        $role = strtolower(trim((string) ($user->rola ?? '')));
+        $isOwnerOrAdmin = in_array($role, ['owner', 'admin'], true);
+        $isTeacher = (int) $task->created_by_user_id === (int) $user->id;
+        $isStudent = (int) $task->assigned_to_user_id === (int) $user->id;
+        if (!$isOwnerOrAdmin && !$isTeacher && !$isStudent) {
+            return response()->json(['message' => 'Brak dostepu do tablicy zadania.'], 403);
+        }
+
+        $rows = DB::table('neuronetix_task_whiteboard_notes')
+            ->where('task_id', $taskId)
+            ->orderBy('id')
+            ->get([
+                'id',
+                'task_id',
+                'user_id',
+                'note_text',
+                'pos_x',
+                'pos_y',
+                'color',
+                'created_at',
+                'updated_at',
+            ]);
+
+        return response()->json([
+            'data' => $rows->map(function (object $row) {
+                return [
+                    'id' => (int) $row->id,
+                    'task_id' => (int) $row->task_id,
+                    'user_id' => (int) $row->user_id,
+                    'text' => $row->note_text ? (string) $row->note_text : null,
+                    'pos_x' => (int) $row->pos_x,
+                    'pos_y' => (int) $row->pos_y,
+                    'color' => (string) $row->color,
+                    'updated_at' => (string) $row->updated_at,
+                ];
+            })->values(),
+        ]);
+    }
+
+    public function saveTaskWhiteboardNote(Request $request, int $taskId)
+    {
+        if (!Schema::hasTable('neuronetix_task_whiteboard_notes')) {
+            return response()->json(['message' => 'Tabela tablicy zadan nie istnieje jeszcze w bazie.'], 422);
+        }
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Brak autoryzacji.'], 401);
+        }
+
+        $task = DB::table('neuronetix_teacher_tasks')->where('id', $taskId)->first();
+        if (!$task) {
+            return response()->json(['message' => 'Zadanie nie zostalo znalezione.'], 404);
+        }
+
+        $role = strtolower(trim((string) ($user->rola ?? '')));
+        $isOwnerOrAdmin = in_array($role, ['owner', 'admin'], true);
+        $isTeacher = (int) $task->created_by_user_id === (int) $user->id;
+        $isStudent = (int) $task->assigned_to_user_id === (int) $user->id;
+        if (!$isOwnerOrAdmin && !$isTeacher && !$isStudent) {
+            return response()->json(['message' => 'Brak dostepu do tablicy zadania.'], 403);
+        }
+
+        $data = $request->validate([
+            'id' => ['nullable', 'integer', 'min:1'],
+            'text' => ['nullable', 'string', 'max:6000'],
+            'pos_x' => ['nullable', 'integer'],
+            'pos_y' => ['nullable', 'integer'],
+            'color' => ['nullable', 'string', 'max:30'],
+        ]);
+
+        $payload = [
+            'task_id' => $taskId,
+            'user_id' => (int) $user->id,
+            'note_text' => trim((string) ($data['text'] ?? '')) ?: null,
+            'pos_x' => (int) ($data['pos_x'] ?? 80),
+            'pos_y' => (int) ($data['pos_y'] ?? 80),
+            'color' => trim((string) ($data['color'] ?? '#fff59d')) ?: '#fff59d',
+            'updated_at' => now(),
+        ];
+
+        if (!empty($data['id'])) {
+            $updated = DB::table('neuronetix_task_whiteboard_notes')
+                ->where('id', (int) $data['id'])
+                ->where('user_id', (int) $user->id)
+                ->where('task_id', $taskId)
+                ->update($payload);
+
+            if ($updated) {
+                return response()->json(['ok' => true, 'id' => (int) $data['id']]);
+            }
+        }
+
+        $payload['created_at'] = now();
+        $id = DB::table('neuronetix_task_whiteboard_notes')->insertGetId($payload);
+
+        return response()->json(['ok' => true, 'id' => (int) $id], 201);
+    }
+
+    public function deleteTaskWhiteboardNote(Request $request, int $taskId, int $noteId)
+    {
+        if (!Schema::hasTable('neuronetix_task_whiteboard_notes')) {
+            return response()->json(['ok' => true]);
+        }
+
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['message' => 'Brak autoryzacji.'], 401);
+        }
+
+        DB::table('neuronetix_task_whiteboard_notes')
+            ->where('id', $noteId)
+            ->where('task_id', $taskId)
+            ->where('user_id', (int) $user->id)
+            ->delete();
 
         return response()->json(['ok' => true]);
     }
@@ -669,7 +805,7 @@ class TeacherPanelController extends Controller
 
             foreach ($data['questions'] as $index => $question) {
                 $type = strtolower(trim((string) ($question['question_type'] ?? 'text')));
-                if (!in_array($type, ['text', 'single_choice'], true)) {
+                if (!in_array($type, ['text', 'single_choice', 'open_with_whiteboard'], true)) {
                     $type = 'text';
                 }
 
@@ -966,7 +1102,8 @@ class TeacherPanelController extends Controller
             'title' => (string) $row->title,
             'description' => $row->description ? (string) $row->description : null,
             'due_date' => $row->due_date ? (string) $row->due_date : null,
-            'status' => (string) $row->status,
+            'status' => $this->normalizeTaskStatus((string) $row->status),
+            'has_whiteboard' => !empty($row->has_whiteboard),
             'created_at' => (string) $row->created_at,
             'updated_at' => (string) $row->updated_at,
             'creator' => [
@@ -980,6 +1117,48 @@ class TeacherPanelController extends Controller
                 'email' => $row->assignee_email ? (string) $row->assignee_email : null,
             ],
         ];
+    }
+
+    private function normalizeTaskStatus(string $status): string
+    {
+        $normalized = strtolower(trim($status));
+
+        if (in_array($normalized, self::TASK_STATUSES, true)) {
+            return $normalized;
+        }
+
+        if ($normalized === 'in_progress') {
+            return 'workflow';
+        }
+
+        if ($normalized === 'done') {
+            return 'submitted';
+        }
+
+        if ($normalized === 'cancelled') {
+            return 'todo';
+        }
+
+        return 'todo';
+    }
+
+    private function taskStatusQueryCandidates(string $status): array
+    {
+        $normalized = $this->normalizeTaskStatus($status);
+
+        if ($normalized === 'workflow') {
+            return ['workflow', 'in_progress'];
+        }
+
+        if ($normalized === 'submitted') {
+            return ['submitted', 'done'];
+        }
+
+        if ($normalized === 'todo') {
+            return ['todo', 'cancelled'];
+        }
+
+        return [$normalized];
     }
 
     private function canManageTask(int $actorId, string $actorRole, int $creatorId): bool

@@ -12,6 +12,8 @@ import Makao from '@/pages/Makao'
 import Neuronetix from '@/pages/Neuronetix'
 import TeacherPanel from '@/pages/TeacherPanel'
 import StudentPanel from '@/pages/StudentPanel'
+import StudentTasksPage from '@/pages/StudentTasksPage'
+import StudentQuizzesPage from '@/pages/StudentQuizzesPage'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminUsers from '@/pages/AdminUsers'
 import AdminRoles from '@/pages/AdminRoles'
@@ -140,6 +142,22 @@ export default function App() {
           element={
             <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
               <StudentPanel />
+            </AppPanelOnly>
+          }
+        />
+        <Route
+          path="neuronetix/student/tasks"
+          element={
+            <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+              <StudentTasksPage />
+            </AppPanelOnly>
+          }
+        />
+        <Route
+          path="neuronetix/student/quizzes"
+          element={
+            <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+              <StudentQuizzesPage />
             </AppPanelOnly>
           }
         />
