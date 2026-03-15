@@ -18,6 +18,7 @@ const NAV_DEFS: NavDef[] = [
   { id: 'users', label: 'Uzytkownicy', to: '/admin/users', title: 'Uzytkownicy', icon: <UsersRound className="nav-icon" size={18} /> },
   { id: 'roles', label: 'Role', to: '/admin/roles', title: 'Role', icon: <Settings className="nav-icon" size={18} /> },
   { id: 'assignments', label: 'Przypisania', to: '/admin/assignments', title: 'Przypisania', icon: <KanbanSquare className="nav-icon" size={18} /> },
+  { id: 'relations', label: 'Relacje', to: '/admin/relations', title: 'Relacje', icon: <UsersRound className="nav-icon" size={18} /> },
   { id: 'projects', label: 'Projekty', to: '/projects', title: 'Projekty', icon: <KanbanSquare className="nav-icon" size={18} /> },
   { id: 'calendar', label: 'Kalendarz', to: '/calendar', title: 'Kalendarz', icon: <CalendarDays className="nav-icon" size={18} /> },
   { id: 'news', label: 'Aktualnosci', to: '/news', title: 'Aktualnosci', icon: <Newspaper className="nav-icon" size={18} /> },
@@ -36,7 +37,7 @@ const APP_NAV_ORDER: Record<AppKey, NavItemId[]> = {
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-  admin: ['dashboard', 'users', 'roles', 'assignments', 'docs', 'sidebar_settings'],
+  admin: ['dashboard', 'users', 'roles', 'assignments', 'relations', 'docs', 'sidebar_settings'],
 }
 
 const APP_NAV_LABEL_OVERRIDES: Partial<Record<AppKey, Partial<Record<NavItemId, string>>>> = {
@@ -87,6 +88,10 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
 
   if (navId === 'assignments') {
     return `/${app}/assignments`
+  }
+
+  if (navId === 'relations') {
+    return `/${app}/relations`
   }
 
   if (navId === 'calendar') {

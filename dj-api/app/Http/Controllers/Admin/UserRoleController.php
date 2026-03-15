@@ -396,6 +396,195 @@ class UserRoleController extends Controller
         ]);
     }
 
+    public function relations(Request $request)
+    {
+        if (!Schema::hasTable('neuronetix_user_relations')) {
+            return response()->json([
+                'data' => [],
+                'relation_types' => $this->relationTypesCatalog(),
+                'meta' => [
+                    'page' => 1,
+                    'per_page' => 20,
+                    'total' => 0,
+                    'last_page' => 1,
+                ],
+                'warning' => 'Tabela relacji nie istnieje jeszcze w bazie.',
+            ]);
+        }
+
+        $data = $request->validate([
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'relation_type' => ['nullable', 'string', 'max:64'],
+            'q' => ['nullable', 'string', 'max:120'],
+        ]);
+
+        $perPage = (int) ($data['per_page'] ?? 20);
+
+        $query = DB::table('neuronetix_user_relations as r')
+            ->leftJoin('uzytkownicy as sup', 'sup.id', '=', 'r.supervisor_user_id')
+            ->leftJoin('uzytkownicy as sub', 'sub.id', '=', 'r.subordinate_user_id')
+            ->leftJoin('uzytkownicy as act', 'act.id', '=', 'r.created_by_user_id')
+            ->select([
+                'r.id',
+                'r.relation_type',
+                'r.activity_scope',
+                'r.notes',
+                'r.created_at',
+                'r.updated_at',
+                'sup.id as supervisor_id',
+                'sup.imie as supervisor_imie',
+                'sup.nick as supervisor_nick',
+                'sup.email as supervisor_email',
+                'sub.id as subordinate_id',
+                'sub.imie as subordinate_imie',
+                'sub.nick as subordinate_nick',
+                'sub.email as subordinate_email',
+                'act.id as actor_id',
+                'act.imie as actor_imie',
+                'act.nick as actor_nick',
+                'act.email as actor_email',
+            ]);
+
+        if (!empty($data['relation_type'])) {
+            $query->where('r.relation_type', strtolower(trim((string) $data['relation_type'])));
+        }
+
+        if (!empty($data['q'])) {
+            $q = trim((string) $data['q']);
+            if ($q !== '') {
+                $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $q) . '%';
+                $query->where(function ($sub) use ($like) {
+                    $sub->where('sup.imie', 'like', $like)
+                        ->orWhere('sup.nick', 'like', $like)
+                        ->orWhere('sup.email', 'like', $like)
+                        ->orWhere('sub.imie', 'like', $like)
+                        ->orWhere('sub.nick', 'like', $like)
+                        ->orWhere('sub.email', 'like', $like)
+                        ->orWhere('r.activity_scope', 'like', $like)
+                        ->orWhere('r.notes', 'like', $like);
+                });
+            }
+        }
+
+        $paginator = $query
+            ->orderByDesc('r.id')
+            ->paginate($perPage)
+            ->appends($request->query());
+
+        return response()->json([
+            'data' => collect($paginator->items())->map(function (object $row) {
+                return [
+                    'id' => (int) $row->id,
+                    'relation_type' => (string) $row->relation_type,
+                    'activity_scope' => $row->activity_scope ? (string) $row->activity_scope : null,
+                    'notes' => $row->notes ? (string) $row->notes : null,
+                    'created_at' => (string) $row->created_at,
+                    'updated_at' => (string) $row->updated_at,
+                    'supervisor' => [
+                        'id' => (int) $row->supervisor_id,
+                        'imie' => $row->supervisor_imie ? (string) $row->supervisor_imie : null,
+                        'nick' => $row->supervisor_nick ? (string) $row->supervisor_nick : null,
+                        'email' => $row->supervisor_email ? (string) $row->supervisor_email : null,
+                    ],
+                    'subordinate' => [
+                        'id' => (int) $row->subordinate_id,
+                        'imie' => $row->subordinate_imie ? (string) $row->subordinate_imie : null,
+                        'nick' => $row->subordinate_nick ? (string) $row->subordinate_nick : null,
+                        'email' => $row->subordinate_email ? (string) $row->subordinate_email : null,
+                    ],
+                    'actor' => [
+                        'id' => $row->actor_id ? (int) $row->actor_id : null,
+                        'imie' => $row->actor_imie ? (string) $row->actor_imie : null,
+                        'nick' => $row->actor_nick ? (string) $row->actor_nick : null,
+                        'email' => $row->actor_email ? (string) $row->actor_email : null,
+                    ],
+                ];
+            })->values(),
+            'relation_types' => $this->relationTypesCatalog(),
+            'meta' => [
+                'page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'last_page' => $paginator->lastPage(),
+            ],
+        ]);
+    }
+
+    public function createRelation(Request $request)
+    {
+        if (!Schema::hasTable('neuronetix_user_relations')) {
+            return response()->json(['message' => 'Tabela relacji nie istnieje jeszcze w bazie.'], 422);
+        }
+
+        $actor = $request->user();
+        if (!$actor) {
+            return response()->json(['message' => 'Brak autoryzacji.'], 401);
+        }
+
+        $data = $request->validate([
+            'supervisor_user_id' => ['required', 'integer', 'min:1'],
+            'subordinate_user_id' => ['required', 'integer', 'min:1'],
+            'relation_type' => ['required', 'string', 'max:64', 'regex:/^[a-z0-9_]+$/'],
+            'activity_scope' => ['nullable', 'string', 'max:120'],
+            'notes' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $supervisorId = (int) $data['supervisor_user_id'];
+        $subordinateId = (int) $data['subordinate_user_id'];
+        if ($supervisorId === $subordinateId) {
+            return response()->json(['message' => 'Uzytkownik nadrzedny i podrzedny nie moga byc ta sama osoba.'], 422);
+        }
+
+        $supervisorExists = LegacyUser::query()->where('id', $supervisorId)->exists();
+        $subordinateExists = LegacyUser::query()->where('id', $subordinateId)->exists();
+        if (!$supervisorExists || !$subordinateExists) {
+            return response()->json(['message' => 'Nie znaleziono jednego z wybranych uzytkownikow.'], 422);
+        }
+
+        $relationType = strtolower(trim((string) $data['relation_type']));
+        $exists = DB::table('neuronetix_user_relations')
+            ->where('supervisor_user_id', $supervisorId)
+            ->where('subordinate_user_id', $subordinateId)
+            ->where('relation_type', $relationType)
+            ->exists();
+
+        if ($exists) {
+            return response()->json(['message' => 'Taka relacja juz istnieje.'], 409);
+        }
+
+        $now = now();
+        $id = DB::table('neuronetix_user_relations')->insertGetId([
+            'supervisor_user_id' => $supervisorId,
+            'subordinate_user_id' => $subordinateId,
+            'relation_type' => $relationType,
+            'activity_scope' => trim((string) ($data['activity_scope'] ?? '')) ?: null,
+            'notes' => trim((string) ($data['notes'] ?? '')) ?: null,
+            'created_by_user_id' => (int) $actor->id,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'relation_id' => (int) $id,
+        ], 201);
+    }
+
+    public function deleteRelation(int $relationId)
+    {
+        if (!Schema::hasTable('neuronetix_user_relations')) {
+            return response()->json(['message' => 'Tabela relacji nie istnieje jeszcze w bazie.'], 422);
+        }
+
+        $deleted = DB::table('neuronetix_user_relations')->where('id', $relationId)->delete();
+        if (!$deleted) {
+            return response()->json(['message' => 'Relacja nie zostala znaleziona.'], 404);
+        }
+
+        return response()->json(['ok' => true]);
+    }
+
     public function roles()
     {
         return response()->json(['data' => $this->rolesPayload()]);
@@ -657,6 +846,42 @@ class UserRoleController extends Controller
         abort_unless($exists, 404, 'Rola nie zostala znaleziona.');
 
         return $roleKey;
+    }
+
+    private function relationTypesCatalog(): array
+    {
+        return [
+            [
+                'key' => 'manager_employee',
+                'label' => 'Manager -> Pracownik',
+                'description' => 'Przelozony zarzadza zadaniami i priorytetami pracownika.',
+            ],
+            [
+                'key' => 'teacher_student',
+                'label' => 'Nauczyciel -> Uczen',
+                'description' => 'Nauczyciel przypisuje i nadzoruje czynnosci ucznia.',
+            ],
+            [
+                'key' => 'mentor_mentee',
+                'label' => 'Mentor -> Mentee',
+                'description' => 'Relacja mentoringowa do regularnego wsparcia i feedbacku.',
+            ],
+            [
+                'key' => 'coordinator_executor',
+                'label' => 'Koordynator -> Wykonawca',
+                'description' => 'Koordynator planuje prace, wykonawca realizuje czynnosci.',
+            ],
+            [
+                'key' => 'reviewer_author',
+                'label' => 'Recenzent -> Autor',
+                'description' => 'Recenzent akceptuje lub odrzuca prace autora.',
+            ],
+            [
+                'key' => 'parent_child_process',
+                'label' => 'Nadrzedny -> Podrzedny',
+                'description' => 'Uniwersalna relacja hierarchiczna dla procesow organizacyjnych.',
+            ],
+        ];
     }
 
     private function serializeHistoryRow(object $row): array

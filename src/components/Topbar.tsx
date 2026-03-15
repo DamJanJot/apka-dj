@@ -74,6 +74,7 @@ export default function Topbar() {
       if (loc.pathname.endsWith('/users')) return 'Uzytkownicy'
       if (loc.pathname.endsWith('/roles')) return 'Role'
       if (loc.pathname.endsWith('/assignments')) return 'Przypisania'
+      if (loc.pathname.endsWith('/relations')) return 'Relacje'
       if (loc.pathname.endsWith('/sidebar-settings')) return 'Panel boczny'
       if (loc.pathname.endsWith('/docs')) return 'Documentation'
     }

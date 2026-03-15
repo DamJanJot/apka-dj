@@ -343,6 +343,58 @@ export type AdminAssignmentsResponse = {
   panel_assignments: Record<string, Record<string, string[]>>
 }
 
+export type AdminRelationType = {
+  key: string
+  label: string
+  description: string
+}
+
+export type AdminRelationPerson = {
+  id: number
+  imie: string | null
+  nick: string | null
+  email: string | null
+}
+
+export type AdminRelationActor = {
+  id: number | null
+  imie: string | null
+  nick: string | null
+  email: string | null
+}
+
+export type AdminRelationItem = {
+  id: number
+  relation_type: string
+  activity_scope: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  supervisor: AdminRelationPerson
+  subordinate: AdminRelationPerson
+  actor: AdminRelationActor
+}
+
+export type AdminRelationsResponse = {
+  data: AdminRelationItem[]
+  relation_types: AdminRelationType[]
+  meta: {
+    page: number
+    per_page: number
+    total: number
+    last_page: number
+  }
+  warning?: string
+}
+
+export type CreateAdminRelationPayload = {
+  supervisor_user_id: number
+  subordinate_user_id: number
+  relation_type: string
+  activity_scope?: string
+  notes?: string
+}
+
 export async function getMe(): Promise<Me> {
   const r = await api.get('/api/me')
   return r.data
@@ -726,6 +778,31 @@ export async function updateAdminRoleApps(key: string, apps: string[]): Promise<
 
 export async function updateAdminRolePanels(key: string, panels: Record<string, string[]>): Promise<void> {
   await api.patch(`/api/admin/roles/${encodeURIComponent(key)}/panel-assignments`, { panels })
+}
+
+export async function listAdminRelations(params?: {
+  page?: number
+  perPage?: number
+  relationType?: string
+  q?: string
+}): Promise<AdminRelationsResponse> {
+  const r = await api.get('/api/admin/relations', {
+    params: {
+      page: params?.page,
+      per_page: params?.perPage,
+      relation_type: params?.relationType,
+      q: params?.q,
+    },
+  })
+  return r.data
+}
+
+export async function createAdminRelation(payload: CreateAdminRelationPayload): Promise<void> {
+  await api.post('/api/admin/relations', payload)
+}
+
+export async function deleteAdminRelation(relationId: number): Promise<void> {
+  await api.delete(`/api/admin/relations/${relationId}`)
 }
 
 export async function listAdminUserRoleHistory(

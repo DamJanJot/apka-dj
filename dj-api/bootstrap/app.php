@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\RequireRole::class,
+            'access' => \App\Http\Middleware\RequireAssignedAccess::class,
         ]);
 
         // Dla SPA (cookie) – upewnij się, że żądania z frontu są traktowane jako "stateful"

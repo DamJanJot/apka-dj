@@ -7,6 +7,7 @@ export default function AdminDashboard() {
   const showUsers = adminPanels.length === 0 || adminPanels.includes('users')
   const showRoles = adminPanels.length === 0 || adminPanels.includes('roles')
   const showAssignments = adminPanels.length === 0 || adminPanels.includes('assignments')
+  const showRelations = adminPanels.length === 0 || adminPanels.includes('relations')
 
   return (
     <section className="card admin-page" style={{ padding: 20 }}>
@@ -35,6 +36,12 @@ export default function AdminDashboard() {
           <h2 style={{ marginTop: 0 }}>Przypisania</h2>
           <p className="muted">Obszar pod przypisania rola-aplikacja i rola-panel + historia zmian.</p>
           <Link to="/admin/assignments" className="btn btn-primary">Przejdz do Przypisan</Link>
+        </article>}
+
+        {showRelations && <article className="card" style={{ marginBottom: 0 }}>
+          <h2 style={{ marginTop: 0 }}>Relacje</h2>
+          <p className="muted">Mapowanie relacji nadrzedny-podrzedny pod przyszle przypisywanie czynnosci.</p>
+          <Link to="/admin/relations" className="btn btn-primary">Przejdz do Relacji</Link>
         </article>}
       </div>
     </section>

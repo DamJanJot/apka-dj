@@ -14,6 +14,7 @@ import AdminDashboard from '@/pages/AdminDashboard'
 import AdminUsers from '@/pages/AdminUsers'
 import AdminRoles from '@/pages/AdminRoles'
 import AdminAssignments from '@/pages/AdminAssignments'
+import AdminRelations from '@/pages/AdminRelations'
 import Taskora from '@/pages/Taskora'
 import Optivio from '@/pages/Optivio'
 import TaskoraDashboard from '@/pages/TaskoraDashboard'
@@ -124,6 +125,14 @@ export default function App() {
           element={
             <AdminOnly requiredPanel="assignments">
               <AdminAssignments />
+            </AdminOnly>
+          }
+        />
+        <Route
+          path="admin/relations"
+          element={
+            <AdminOnly requiredPanel="relations">
+              <AdminRelations />
             </AdminOnly>
           }
         />

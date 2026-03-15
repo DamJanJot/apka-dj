@@ -36,6 +36,24 @@ class NeuroNetixRoleSeeder extends Seeder
                 'is_system' => true,
             ],
             [
+                'key' => 'pracownik',
+                'name' => 'Pracownik',
+                'description' => 'Realizacja przypisanych czynnosci operacyjnych.',
+                'is_system' => true,
+            ],
+            [
+                'key' => 'nauczyciel',
+                'name' => 'Nauczyciel',
+                'description' => 'Prowadzenie uczniow i nadzor aktywnosci edukacyjnych.',
+                'is_system' => true,
+            ],
+            [
+                'key' => 'uczen',
+                'name' => 'Uczen',
+                'description' => 'Rola podrzedna w relacji nauczyciel-uczen.',
+                'is_system' => true,
+            ],
+            [
                 'key' => 'analyst',
                 'name' => 'Analyst',
                 'description' => 'Dostep do raportow i analityki.',

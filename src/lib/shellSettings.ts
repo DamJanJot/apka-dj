@@ -5,6 +5,7 @@ export type NavItemId =
   | 'users'
   | 'roles'
   | 'assignments'
+  | 'relations'
   | 'projects'
   | 'calendar'
   | 'news'
@@ -34,7 +35,7 @@ export const DEFAULT_VISIBLE_NAV: Record<AppKey, NavItemId[]> = {
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-  admin: ['dashboard', 'users', 'roles', 'assignments', 'docs', 'sidebar_settings'],
+  admin: ['dashboard', 'users', 'roles', 'assignments', 'relations', 'docs', 'sidebar_settings'],
 }
 
 export const APP_NAV_CANDIDATES: Record<AppKey, NavItemId[]> = {
@@ -43,7 +44,7 @@ export const APP_NAV_CANDIDATES: Record<AppKey, NavItemId[]> = {
   taskora: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   optivio: ['dashboard', 'projects', 'messages', 'friends', 'docs'],
   chic: ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-  admin: ['dashboard', 'users', 'roles', 'assignments', 'docs', 'sidebar_settings'],
+  admin: ['dashboard', 'users', 'roles', 'assignments', 'relations', 'docs', 'sidebar_settings'],
 }
 
 type NavPrefs = Record<AppKey, Partial<Record<NavItemId, boolean>>>

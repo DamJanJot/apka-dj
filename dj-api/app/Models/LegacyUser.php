@@ -19,7 +19,7 @@ class LegacyUser extends Authenticatable
         'taskora' => ['dashboard', 'projects', 'messages', 'friends', 'docs'],
         'optivio' => ['dashboard', 'projects', 'messages', 'friends', 'docs'],
         'chic' => ['dashboard', 'news', 'markets', 'messages', 'friends', 'board', 'makao', 'docs'],
-        'admin' => ['dashboard', 'users', 'roles', 'assignments', 'docs', 'sidebar_settings'],
+        'admin' => ['dashboard', 'users', 'roles', 'assignments', 'relations', 'docs', 'sidebar_settings'],
     ];
 
     protected $table = 'uzytkownicy';
@@ -159,11 +159,18 @@ class LegacyUser extends Authenticatable
             'owner' => self::AVAILABLE_APP_KEYS,
             'admin' => self::AVAILABLE_APP_KEYS,
             'manager' => ['neuronetix', 'taskora', 'optivio'],
+            'pracownik' => ['neuronetix', 'taskora', 'optivio'],
+            'nauczyciel' => ['neuronetix', 'taskora'],
+            'uczen' => ['neuronetix'],
             'analyst' => ['neuronetix', 'optivio'],
             'support' => ['neuronetix', 'optivio'],
             'moderator' => ['orbitum', 'neuronetix'],
             'user' => ['orbitum', 'neuronetix'],
             'guest' => ['orbitum'],
+            // Backward compatibility for any old keys that still exist in DB.
+            'employee' => ['neuronetix', 'taskora', 'optivio'],
+            'teacher' => ['neuronetix', 'taskora'],
+            'student' => ['neuronetix'],
         ];
     }
 

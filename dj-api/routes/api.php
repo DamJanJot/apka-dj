@@ -252,7 +252,7 @@ Route::middleware('auth:sanctum')->prefix('makao-online')->group(function () {
 });
 
 // ---------- OPTIVIO ----------
-Route::middleware(['auth:sanctum', 'role:user,manager,admin,owner,analyst,support'])->prefix('optivio')->group(function () {
+Route::middleware(['auth:sanctum', 'role:user,manager,admin,owner,analyst,support', 'access:optivio'])->prefix('optivio')->group(function () {
     Route::get('/projects', [OptivioController::class, 'projects']);
     Route::post('/projects', [OptivioController::class, 'createProject'])->middleware('role:manager,admin,owner');
     Route::patch('/projects/{projectId}/taskora-link', [OptivioController::class, 'linkTaskoraProject'])->middleware('role:manager,admin,owner');
@@ -263,7 +263,7 @@ Route::middleware(['auth:sanctum', 'role:user,manager,admin,owner,analyst,suppor
 });
 
 // ---------- TASKORA BRIDGE ----------
-Route::middleware(['auth:sanctum', 'role:manager,admin,owner'])->prefix('taskora-bridge')->group(function () {
+Route::middleware(['auth:sanctum', 'role:manager,admin,owner', 'access:taskora'])->prefix('taskora-bridge')->group(function () {
     Route::get('/projects', [TaskoraBridgeController::class, 'projects']);
     Route::post('/projects', [TaskoraBridgeController::class, 'createProject']);
     Route::get('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'tasks']);
@@ -272,16 +272,19 @@ Route::middleware(['auth:sanctum', 'role:manager,admin,owner'])->prefix('taskora
 
 // ---------- ADMIN ----------
 Route::middleware(['auth:sanctum', 'role:admin,owner'])->prefix('admin')->group(function () {
-    Route::post('/users', [UserRoleController::class, 'createUser']);
-    Route::get('/users', [UserRoleController::class, 'users']);
-    Route::post('/roles', [UserRoleController::class, 'createRole']);
-    Route::get('/roles', [UserRoleController::class, 'roles']);
-    Route::patch('/roles/{key}', [UserRoleController::class, 'updateRole']);
-    Route::delete('/roles/{key}', [UserRoleController::class, 'deleteRole']);
-    Route::get('/assignments', [UserRoleController::class, 'assignments']);
-    Route::patch('/roles/{key}/app-assignments', [UserRoleController::class, 'syncRoleApps']);
-    Route::patch('/roles/{key}/panel-assignments', [UserRoleController::class, 'syncRolePanels']);
-    Route::get('/role-change-logs', [UserRoleController::class, 'history']);
-    Route::get('/users/{userId}/role-history', [UserRoleController::class, 'userHistory']);
-    Route::patch('/users/{userId}/role', [UserRoleController::class, 'update']);
+    Route::post('/users', [UserRoleController::class, 'createUser'])->middleware('access:admin,users');
+    Route::get('/users', [UserRoleController::class, 'users'])->middleware('access:admin,users');
+    Route::get('/relations', [UserRoleController::class, 'relations'])->middleware('access:admin,relations');
+    Route::post('/relations', [UserRoleController::class, 'createRelation'])->middleware('access:admin,relations');
+    Route::delete('/relations/{relationId}', [UserRoleController::class, 'deleteRelation'])->middleware('access:admin,relations');
+    Route::post('/roles', [UserRoleController::class, 'createRole'])->middleware('access:admin,roles');
+    Route::get('/roles', [UserRoleController::class, 'roles'])->middleware('access:admin,roles');
+    Route::patch('/roles/{key}', [UserRoleController::class, 'updateRole'])->middleware('access:admin,roles');
+    Route::delete('/roles/{key}', [UserRoleController::class, 'deleteRole'])->middleware('access:admin,roles');
+    Route::get('/assignments', [UserRoleController::class, 'assignments'])->middleware('access:admin,assignments');
+    Route::patch('/roles/{key}/app-assignments', [UserRoleController::class, 'syncRoleApps'])->middleware('access:admin,assignments');
+    Route::patch('/roles/{key}/panel-assignments', [UserRoleController::class, 'syncRolePanels'])->middleware('access:admin,assignments');
+    Route::get('/role-change-logs', [UserRoleController::class, 'history'])->middleware('access:admin,users');
+    Route::get('/users/{userId}/role-history', [UserRoleController::class, 'userHistory'])->middleware('access:admin,users');
+    Route::patch('/users/{userId}/role', [UserRoleController::class, 'update'])->middleware('access:admin,users');
 });

@@ -59,6 +59,7 @@ const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
     { id: 'users', label: 'Uzytkownicy' },
     { id: 'roles', label: 'Role' },
     { id: 'assignments', label: 'Przypisania' },
+    { id: 'relations', label: 'Relacje' },
     { id: 'docs', label: 'Documentation' },
     { id: 'sidebar_settings', label: 'Panel boczny' },
   ],
