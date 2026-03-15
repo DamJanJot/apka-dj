@@ -10,6 +10,7 @@ import Friends from '@/pages/Friends'
 import Board from '@/pages/Board'
 import Makao from '@/pages/Makao'
 import Neuronetix from '@/pages/Neuronetix'
+import TeacherPanel from '@/pages/TeacherPanel'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminUsers from '@/pages/AdminUsers'
 import AdminRoles from '@/pages/AdminRoles'
@@ -61,6 +62,38 @@ function AdminOnly({ children, requiredPanel }: { children: JSX.Element; require
   return children
 }
 
+function AppPanelOnly({
+  children,
+  app,
+  panel,
+  allowedRoles,
+}: {
+  children: JSX.Element
+  app: string
+  panel: string
+  allowedRoles: string[]
+}) {
+  const { user, loading } = useAuth()
+  if (loading) return <div style={{ padding: 24 }}>Ładowanie…</div>
+
+  const role = (user?.rola || '').toLowerCase()
+  if (!allowedRoles.includes(role)) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  const apps = user?.access?.apps || []
+  const appPanels = user?.access?.panels?.[app] || []
+  if (apps.length > 0) {
+    const hasApp = apps.includes(app)
+    const hasPanel = appPanels.includes(panel)
+    if (!hasApp || !hasPanel) {
+      return <Navigate to="/dashboard" replace />
+    }
+  }
+
+  return children
+}
+
 export default function App() {
   return (
     <Routes>
@@ -93,6 +126,14 @@ export default function App() {
         <Route path="neuronetix/dashboard" element={<Neuronetix />} />
         <Route path="neuronetix/messages" element={<AppScopedModule appLabel="Neuronetix" moduleLabel="Wiadomosci" />} />
         <Route path="neuronetix/friends" element={<AppScopedModule appLabel="Neuronetix" moduleLabel="Znajomi" />} />
+        <Route
+          path="neuronetix/teacher"
+          element={
+            <AppPanelOnly app="neuronetix" panel="teacher" allowedRoles={['nauczyciel', 'admin', 'owner']}>
+              <TeacherPanel />
+            </AppPanelOnly>
+          }
+        />
         <Route path="neuronetix/docs" element={<Docs />} />
 
         <Route path="admin" element={<Navigate to="/admin/dashboard" replace />} />

@@ -6,9 +6,14 @@ export default function Neuronetix() {
   const role = (user?.rola || '').toLowerCase()
   const adminApps = user?.access?.apps || []
   const adminPanels = user?.access?.panels?.admin || []
+  const neuronetixApps = user?.access?.apps || []
+  const neuronetixPanels = user?.access?.panels?.neuronetix || []
   const canManageRoles = (role === 'admin' || role === 'owner')
     && (adminApps.length === 0 || adminApps.includes('admin'))
     && (adminPanels.length === 0 || adminPanels.includes('dashboard'))
+  const canOpenTeacherPanel = (role === 'nauczyciel' || role === 'admin' || role === 'owner')
+    && (neuronetixApps.length === 0 || neuronetixApps.includes('neuronetix'))
+    && (neuronetixPanels.length === 0 || neuronetixPanels.includes('teacher'))
 
   return (
     <div className="card" style={{ padding: 20 }}>
@@ -46,6 +51,18 @@ export default function Neuronetix() {
           </p>
           <Link to="/admin/dashboard" className="btn btn-primary">
             Otworz Admin Panel
+          </Link>
+        </div>
+      )}
+
+      {canOpenTeacherPanel && (
+        <div className="card" style={{ marginTop: 14, marginBottom: 0 }}>
+          <h2 style={{ marginTop: 0 }}>Panel nauczyciela</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Podglad uczniow i relacji opiekunczych przygotowany pod dalsze przypisywanie czynnosci.
+          </p>
+          <Link to="/neuronetix/teacher" className="btn btn-primary">
+            Otworz panel nauczyciela
           </Link>
         </div>
       )}

@@ -52,6 +52,7 @@ export default function Topbar() {
       if (loc.pathname.endsWith('/dashboard')) return 'Dashboard'
       if (loc.pathname.endsWith('/messages')) return 'Wiadomosci'
       if (loc.pathname.endsWith('/friends')) return 'Znajomi'
+      if (loc.pathname.endsWith('/teacher')) return 'Panel nauczyciela'
       if (loc.pathname.endsWith('/docs')) return 'Documentation'
     }
 

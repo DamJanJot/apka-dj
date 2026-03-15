@@ -11,6 +11,7 @@ use App\Http\Controllers\OrbitumMakaoOnlineController;
 use App\Http\Controllers\OrbitumPostsController;
 use App\Http\Controllers\OptivioController;
 use App\Http\Controllers\TaskoraBridgeController;
+use App\Http\Controllers\TeacherPanelController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Models\OrbitumFriendship;
 use App\Models\LegacyUser;
@@ -268,6 +269,11 @@ Route::middleware(['auth:sanctum', 'role:manager,admin,owner', 'access:taskora']
     Route::post('/projects', [TaskoraBridgeController::class, 'createProject']);
     Route::get('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'tasks']);
     Route::post('/projects/{projectId}/tasks', [TaskoraBridgeController::class, 'createTask']);
+});
+
+// ---------- TEACHER PANEL ----------
+Route::middleware(['auth:sanctum', 'role:nauczyciel,admin,owner', 'access:neuronetix,teacher'])->prefix('teacher')->group(function () {
+    Route::get('/overview', [TeacherPanelController::class, 'overview']);
 });
 
 // ---------- ADMIN ----------

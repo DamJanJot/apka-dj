@@ -39,6 +39,10 @@ class NeuroNetixAssignmentSeeder extends Seeder
                         continue;
                     }
 
+                    if ($appKey === 'neuronetix' && $panelKey === 'teacher' && !in_array($roleKey, ['nauczyciel', 'teacher', 'owner', 'admin'], true)) {
+                        continue;
+                    }
+
                     $panelExists = DB::table('neuronetix_role_panel_assignments')
                         ->where('role_key', $roleKey)
                         ->where('app_key', $appKey)

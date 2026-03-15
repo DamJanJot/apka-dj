@@ -387,6 +387,30 @@ export type AdminRelationsResponse = {
   warning?: string
 }
 
+export type TeacherOverviewStudent = {
+  relation_id: number
+  relation_type: string
+  activity_scope: string | null
+  notes: string | null
+  updated_at: string
+  student: {
+    id: number
+    imie: string | null
+    nick: string | null
+    email: string | null
+    rola: string | null
+  }
+}
+
+export type TeacherOverview = {
+  students: TeacherOverviewStudent[]
+  meta: {
+    total: number
+    by_type: Record<string, number>
+  }
+  warning?: string
+}
+
 export type CreateAdminRelationPayload = {
   supervisor_user_id: number
   subordinate_user_id: number
@@ -803,6 +827,11 @@ export async function createAdminRelation(payload: CreateAdminRelationPayload): 
 
 export async function deleteAdminRelation(relationId: number): Promise<void> {
   await api.delete(`/api/admin/relations/${relationId}`)
+}
+
+export async function getTeacherOverview(): Promise<TeacherOverview> {
+  const r = await api.get('/api/teacher/overview')
+  return r.data
 }
 
 export async function listAdminUserRoleHistory(

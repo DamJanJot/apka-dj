@@ -28,6 +28,7 @@ const APP_FIELDS: Record<AppKey, { id: NavItemId; label: string }[]> = {
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'messages', label: 'Wiadomosci' },
     { id: 'friends', label: 'Znajomi' },
+    { id: 'teacher', label: 'Panel nauczyciela' },
     { id: 'docs', label: 'Documentation' },
   ],
   taskora: [
