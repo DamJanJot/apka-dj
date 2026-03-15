@@ -64,13 +64,15 @@ export default function StudentPanel() {
   const summary = useMemo(() => {
     const pendingTasks = tasks.filter((task) => task.status !== 'submitted').length
     const submittedTasks = tasks.filter((task) => task.status === 'submitted').length
-    const pendingQuizzes = quizzes.filter((quiz) => quiz.assignment_status !== 'submitted').length
+    const pendingQuizzes = quizzes.filter((quiz) => quiz.quiz_type === 'quiz' && quiz.assignment_status !== 'submitted').length
+    const pendingTests = quizzes.filter((quiz) => quiz.quiz_type === 'test' && quiz.assignment_status !== 'submitted').length
     const unreadNotifications = notifications.filter((notification) => !notification.read_at).length
 
     return {
       pendingTasks,
       submittedTasks,
       pendingQuizzes,
+      pendingTests,
       unreadNotifications,
     }
   }, [tasks, quizzes, notifications])
@@ -80,7 +82,7 @@ export default function StudentPanel() {
       <div className="row-between" style={{ marginBottom: 12, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0 }}>Panel ucznia</h1>
-          <p className="muted" style={{ margin: '8px 0 0' }}>Szybki start: przejdz do zadan albo quizow.</p>
+          <p className="muted" style={{ margin: '8px 0 0' }}>Szybki start: osobno zadania, testy i quizy.</p>
         </div>
       </div>
 
@@ -103,6 +105,10 @@ export default function StudentPanel() {
               <strong>{summary.pendingQuizzes}</strong>
             </article>
             <article className="student-summary-card">
+              <span className="muted">Testy do rozwiazania</span>
+              <strong>{summary.pendingTests}</strong>
+            </article>
+            <article className="student-summary-card">
               <span className="muted">Nowe powiadomienia</span>
               <strong>{summary.unreadNotifications}</strong>
             </article>
@@ -116,9 +122,15 @@ export default function StudentPanel() {
             </Link>
 
             <Link to="/neuronetix/student/quizzes" className="student-hub-link">
-              <h2>Quizy i testy</h2>
-              <p>Czytelny tryb rozwiazywania, pytania krok po kroku, szybkie zaznaczanie odpowiedzi i punktacja od razu po wyslaniu.</p>
+              <h2>Quizy</h2>
+              <p>Krotkie quizy w osobnym panelu, z szybkim klikanie odpowiedzi i punktacja po wyslaniu.</p>
               <span className="btn btn-primary">Przejdz do quizow</span>
+            </Link>
+
+            <Link to="/neuronetix/student/tests" className="student-hub-link">
+              <h2>Testy</h2>
+              <p>Oddzielny panel testow z takim samym czytelnym przeplywem pytan i autoocena.</p>
+              <span className="btn btn-primary">Przejdz do testow</span>
             </Link>
           </div>
         </>

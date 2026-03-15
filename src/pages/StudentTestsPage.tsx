@@ -32,10 +32,10 @@ function formatDate(value: string | null): string {
   return parsed.toLocaleString('pl-PL')
 }
 
-export default function StudentQuizzesPage() {
-  const [quizzes, setQuizzes] = useState<TeacherQuizListItem[]>([])
-  const [activeQuizId, setActiveQuizId] = useState<number | null>(null)
-  const [activeQuiz, setActiveQuiz] = useState<TeacherQuizDetail['quiz'] | null>(null)
+export default function StudentTestsPage() {
+  const [tests, setTests] = useState<TeacherQuizListItem[]>([])
+  const [activeTestId, setActiveTestId] = useState<number | null>(null)
+  const [activeTest, setActiveTest] = useState<TeacherQuizDetail['quiz'] | null>(null)
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [scoreInfo, setScoreInfo] = useState<{ score: number; maxScore: number } | null>(null)
@@ -46,9 +46,9 @@ export default function StudentQuizzesPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
-  const loadQuizzes = async () => {
-    const response = await listTeacherQuizzes({ quizType: 'quiz' })
-    setQuizzes(response.data || [])
+  const loadTests = async () => {
+    const response = await listTeacherQuizzes({ quizType: 'test' })
+    setTests(response.data || [])
   }
 
   useEffect(() => {
@@ -57,7 +57,7 @@ export default function StudentQuizzesPage() {
 
     void (async () => {
       try {
-        await loadQuizzes()
+        await loadTests()
         if (!mounted) return
         setError('')
       } catch (requestError) {
@@ -73,82 +73,82 @@ export default function StudentQuizzesPage() {
     }
   }, [])
 
-  const openQuiz = (quizId: number) => {
+  const openTest = (testId: number) => {
     setNotice('')
     setScoreInfo(null)
     setActiveQuestionIndex(0)
     setAnswers({})
-    setActiveQuizId(quizId)
+    setActiveTestId(testId)
 
     void (async () => {
       try {
-        const detail = await getTeacherQuizDetail(quizId)
-        setActiveQuiz(detail.quiz)
+        const detail = await getTeacherQuizDetail(testId)
+        setActiveTest(detail.quiz)
         const firstQuestionId = detail.quiz.questions[0]?.id
-        const notes = await listTeacherQuizWhiteboardNotes(quizId, firstQuestionId)
+        const notes = await listTeacherQuizWhiteboardNotes(testId, firstQuestionId)
         setWhiteboardNotes(notes.data || [])
       } catch (requestError) {
-        setNotice(`Nie mozna otworzyc quizu: ${getRequestErrorMessage(requestError)}`)
+        setNotice(`Nie mozna otworzyc testu: ${getRequestErrorMessage(requestError)}`)
       }
     })()
   }
 
-  const activeQuestion = activeQuiz?.questions?.[activeQuestionIndex] || null
+  const activeQuestion = activeTest?.questions?.[activeQuestionIndex] || null
 
   useEffect(() => {
-    if (!activeQuizId || !activeQuestion?.id) {
+    if (!activeTestId || !activeQuestion?.id) {
       setWhiteboardNotes([])
       return
     }
 
     void (async () => {
       try {
-        const notes = await listTeacherQuizWhiteboardNotes(activeQuizId, activeQuestion.id)
+        const notes = await listTeacherQuizWhiteboardNotes(activeTestId, activeQuestion.id)
         setWhiteboardNotes(notes.data || [])
       } catch {
         setWhiteboardNotes([])
       }
     })()
-  }, [activeQuizId, activeQuestion?.id])
+  }, [activeTestId, activeQuestion?.id])
 
   const completion = useMemo(() => {
-    if (!activeQuiz) return { answered: 0, total: 0 }
-    const total = activeQuiz.questions.length
-    const answered = activeQuiz.questions.filter((question) => {
+    if (!activeTest) return { answered: 0, total: 0 }
+    const total = activeTest.questions.length
+    const answered = activeTest.questions.filter((question) => {
       const val = answers[String(question.id)]
       return Boolean((val || '').trim())
     }).length
     return { answered, total }
-  }, [activeQuiz, answers])
+  }, [activeTest, answers])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!activeQuizId) return
+    if (!activeTestId) return
 
     setNotice('')
     void (async () => {
       try {
-        const result = await submitTeacherQuiz(activeQuizId, answers)
+        const result = await submitTeacherQuiz(activeTestId, answers)
         setScoreInfo({ score: result.score, maxScore: result.max_score })
-        setNotice('Quiz zostal automatycznie oceniony.')
-        await loadQuizzes()
+        setNotice('Test zostal automatycznie oceniony.')
+        await loadTests()
       } catch (requestError) {
-        setNotice(`Nie mozna wyslac quizu: ${getRequestErrorMessage(requestError)}`)
+        setNotice(`Nie mozna wyslac testu: ${getRequestErrorMessage(requestError)}`)
       }
     })()
   }
 
   const saveWhiteboard = () => {
-    if (!activeQuizId || !activeQuestion?.id) return
+    if (!activeTestId || !activeQuestion?.id) return
 
     void (async () => {
       try {
-        await saveTeacherQuizWhiteboardNote(activeQuizId, {
+        await saveTeacherQuizWhiteboardNote(activeTestId, {
           question_id: activeQuestion.id,
           text: whiteboardText,
           color: whiteboardColor,
         })
-        const response = await listTeacherQuizWhiteboardNotes(activeQuizId, activeQuestion.id)
+        const response = await listTeacherQuizWhiteboardNotes(activeTestId, activeQuestion.id)
         setWhiteboardNotes(response.data || [])
         setWhiteboardText('')
       } catch (requestError) {
@@ -161,8 +161,8 @@ export default function StudentQuizzesPage() {
     <section className="card student-quiz-page" style={{ padding: 20 }}>
       <div className="row-between" style={{ flexWrap: 'wrap', gap: 10 }}>
         <div>
-          <h1 style={{ margin: 0 }}>Quizy ucznia</h1>
-          <p className="muted" style={{ margin: '8px 0 0' }}>Czytelny tryb rozwiazywania: najpierw wybierz quiz z listy po lewej.</p>
+          <h1 style={{ margin: 0 }}>Testy ucznia</h1>
+          <p className="muted" style={{ margin: '8px 0 0' }}>Oddzielny panel testow, z tym samym czytelnym sposobem rozwiazywania.</p>
         </div>
       </div>
 
@@ -173,29 +173,29 @@ export default function StudentQuizzesPage() {
       {!loading && (
         <div className="student-quiz-layout">
           <aside className="student-quiz-list">
-            {quizzes.length === 0 && <p className="muted">Brak przypisanych quizow.</p>}
-            {quizzes.map((quiz) => (
+            {tests.length === 0 && <p className="muted">Brak przypisanych testow.</p>}
+            {tests.map((test) => (
               <button
-                key={quiz.id}
+                key={test.id}
                 type="button"
-                className={`student-quiz-list-item ${activeQuizId === quiz.id ? 'active' : ''}`}
-                onClick={() => openQuiz(quiz.id)}
+                className={`student-quiz-list-item ${activeTestId === test.id ? 'active' : ''}`}
+                onClick={() => openTest(test.id)}
               >
-                <strong>{quiz.title}</strong>
-                <span className="muted">Termin: {formatDate(quiz.due_date)}</span>
-                <span className="muted">Status: {quiz.assignment_status || 'assigned'}</span>
+                <strong>{test.title}</strong>
+                <span className="muted">Termin: {formatDate(test.due_date)}</span>
+                <span className="muted">Status: {test.assignment_status || 'assigned'}</span>
               </button>
             ))}
           </aside>
 
           <div className="student-quiz-workspace">
-            {!activeQuiz && <p className="muted">Wybierz quiz z listy, aby rozpocząc rozwiazywanie.</p>}
+            {!activeTest && <p className="muted">Wybierz test z listy, aby rozpocząc rozwiazywanie.</p>}
 
-            {activeQuiz && (
+            {activeTest && (
               <form onSubmit={handleSubmit} className="student-quiz-form">
                 <div className="student-quiz-header">
-                  <h2>{activeQuiz.title}</h2>
-                  <p className="muted">Termin: {formatDate(activeQuiz.due_date)}</p>
+                  <h2>{activeTest.title}</h2>
+                  <p className="muted">Termin: {formatDate(activeTest.due_date)}</p>
                   <p className="muted">Postep: {completion.answered}/{completion.total}</p>
                   {scoreInfo && <p className="student-score-badge">Wynik: {scoreInfo.score}/{scoreInfo.maxScore}</p>}
                 </div>
@@ -203,7 +203,7 @@ export default function StudentQuizzesPage() {
                 {activeQuestion && (
                   <article className="student-question-card">
                     <div className="row-between" style={{ alignItems: 'center', gap: 10 }}>
-                      <h3 style={{ margin: 0 }}>Pytanie {activeQuestionIndex + 1} z {activeQuiz.questions.length}</h3>
+                      <h3 style={{ margin: 0 }}>Pytanie {activeQuestionIndex + 1} z {activeTest.questions.length}</h3>
                       <span className="muted">{activeQuestion.points} pkt</span>
                     </div>
                     <p>{activeQuestion.question_text}</p>
@@ -267,7 +267,7 @@ export default function StudentQuizzesPage() {
                   <button
                     type="button"
                     className="btn btn-ghost"
-                    disabled={!activeQuiz || activeQuestionIndex <= 0}
+                    disabled={!activeTest || activeQuestionIndex <= 0}
                     onClick={() => setActiveQuestionIndex((prev) => Math.max(0, prev - 1))}
                   >
                     Poprzednie
@@ -275,8 +275,8 @@ export default function StudentQuizzesPage() {
                   <button
                     type="button"
                     className="btn btn-ghost"
-                    disabled={!activeQuiz || activeQuestionIndex >= activeQuiz.questions.length - 1}
-                    onClick={() => setActiveQuestionIndex((prev) => Math.min((activeQuiz?.questions.length || 1) - 1, prev + 1))}
+                    disabled={!activeTest || activeQuestionIndex >= activeTest.questions.length - 1}
+                    onClick={() => setActiveQuestionIndex((prev) => Math.min((activeTest?.questions.length || 1) - 1, prev + 1))}
                   >
                     Nastepne
                   </button>

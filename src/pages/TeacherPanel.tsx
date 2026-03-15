@@ -77,6 +77,7 @@ export default function TeacherPanel() {
 
   const [quizTitle, setQuizTitle] = useState('')
   const [quizDescription, setQuizDescription] = useState('')
+  const [quizType, setQuizType] = useState<'quiz' | 'test'>('quiz')
   const [quizDueDate, setQuizDueDate] = useState('')
   const [quizStudentIds, setQuizStudentIds] = useState<number[]>([])
   const [quizQuestions, setQuizQuestions] = useState<Array<{
@@ -345,12 +346,14 @@ export default function TeacherPanel() {
         await createTeacherQuiz({
           title: quizTitle.trim(),
           description: quizDescription.trim() || undefined,
+          quiz_type: quizType,
           due_date: quizDueDate || null,
           student_user_ids: quizStudentIds,
           questions: payloadQuestions,
         })
         setQuizTitle('')
         setQuizDescription('')
+        setQuizType('quiz')
         setQuizDueDate('')
         setQuizStudentIds([])
         setQuizQuestions([{ question_text: '', question_type: 'text', options: '', correct_answer: '', points: 1 }])
@@ -690,6 +693,10 @@ export default function TeacherPanel() {
             <div className="row" style={{ flexWrap: 'wrap', marginBottom: 8 }}>
               <input className="admin-field" value={quizTitle} onChange={(event) => setQuizTitle(event.target.value)} placeholder="Tytul quizu" style={{ minWidth: 220 }} />
               <input className="admin-field" value={quizDescription} onChange={(event) => setQuizDescription(event.target.value)} placeholder="Opis" style={{ minWidth: 260 }} />
+              <select className="admin-field" value={quizType} onChange={(event) => setQuizType(event.target.value as 'quiz' | 'test')}>
+                <option value="quiz">Quiz</option>
+                <option value="test">Test</option>
+              </select>
               <input className="admin-field" type="date" value={quizDueDate} onChange={(event) => setQuizDueDate(event.target.value)} />
             </div>
 
@@ -736,6 +743,7 @@ export default function TeacherPanel() {
                 <tr>
                   <th>Tytul</th>
                   <th>Termin</th>
+                  <th>Typ</th>
                   <th>Pytania</th>
                   <th>Przypisani</th>
                   <th>Status</th>
@@ -743,8 +751,8 @@ export default function TeacherPanel() {
                 </tr>
               </thead>
               <tbody>
-                {quizzesLoading && <tr><td colSpan={6} className="muted">Ladowanie quizow...</td></tr>}
-                {!quizzesLoading && quizzes.length === 0 && <tr><td colSpan={6} className="muted">Brak quizow.</td></tr>}
+                {quizzesLoading && <tr><td colSpan={7} className="muted">Ladowanie quizow...</td></tr>}
+                {!quizzesLoading && quizzes.length === 0 && <tr><td colSpan={7} className="muted">Brak quizow.</td></tr>}
                 {!quizzesLoading && quizzes.map((quiz) => (
                   <tr key={quiz.id}>
                     <td>
@@ -752,6 +760,7 @@ export default function TeacherPanel() {
                       <small className="muted">{quiz.description || '-'}</small>
                     </td>
                     <td>{quiz.due_date || '-'}</td>
+                    <td>{quiz.quiz_type || 'quiz'}</td>
                     <td>{quiz.questions_count ?? '-'}</td>
                     <td>{quiz.assigned_count ?? '-'}</td>
                     <td>{quiz.assignment_status || (quiz.is_active ? 'aktywny' : 'nieaktywny')}</td>

@@ -469,6 +469,7 @@ export type TeacherQuizListItem = {
   id: number
   title: string
   description: string | null
+  quiz_type: 'quiz' | 'test'
   due_date: string | null
   is_active: boolean
   questions_count?: number
@@ -499,6 +500,7 @@ export type TeacherQuizDetail = {
     id: number
     title: string
     description: string | null
+    quiz_type: 'quiz' | 'test'
     due_date: string | null
     is_active: boolean
     questions: TeacherQuizQuestion[]
@@ -1026,8 +1028,12 @@ export async function markTeacherNotificationsReadAll(): Promise<void> {
   await api.post('/api/teacher/notifications/read-all')
 }
 
-export async function listTeacherQuizzes(): Promise<{ data: TeacherQuizListItem[] }> {
-  const r = await api.get('/api/teacher/quizzes')
+export async function listTeacherQuizzes(params?: { quizType?: 'quiz' | 'test' }): Promise<{ data: TeacherQuizListItem[] }> {
+  const r = await api.get('/api/teacher/quizzes', {
+    params: {
+      quiz_type: params?.quizType,
+    },
+  })
   return r.data
 }
 
@@ -1039,6 +1045,7 @@ export async function getTeacherQuizDetail(quizId: number): Promise<TeacherQuizD
 export async function createTeacherQuiz(payload: {
   title: string
   description?: string
+  quiz_type?: 'quiz' | 'test'
   due_date?: string | null
   is_active?: boolean
   student_user_ids?: number[]

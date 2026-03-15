@@ -14,6 +14,7 @@ import TeacherPanel from '@/pages/TeacherPanel'
 import StudentPanel from '@/pages/StudentPanel'
 import StudentTasksPage from '@/pages/StudentTasksPage'
 import StudentQuizzesPage from '@/pages/StudentQuizzesPage'
+import StudentTestsPage from '@/pages/StudentTestsPage'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminUsers from '@/pages/AdminUsers'
 import AdminRoles from '@/pages/AdminRoles'
@@ -158,6 +159,14 @@ export default function App() {
           element={
             <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
               <StudentQuizzesPage />
+            </AppPanelOnly>
+          }
+        />
+        <Route
+          path="neuronetix/student/tests"
+          element={
+            <AppPanelOnly app="neuronetix" panel="student" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+              <StudentTestsPage />
             </AppPanelOnly>
           }
         />

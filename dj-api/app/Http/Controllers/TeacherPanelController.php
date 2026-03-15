@@ -576,6 +576,13 @@ class TeacherPanelController extends Controller
         }
 
         $role = strtolower(trim((string) ($user->rola ?? '')));
+        $data = $request->validate([
+            'quiz_type' => ['nullable', 'string', 'max:24'],
+        ]);
+        $quizTypeFilter = strtolower(trim((string) ($data['quiz_type'] ?? '')));
+        if (!in_array($quizTypeFilter, ['quiz', 'test'], true)) {
+            $quizTypeFilter = '';
+        }
 
         if ($role === 'uczen' || $role === 'student') {
             $rows = DB::table('neuronetix_quiz_assignments as qa')
@@ -587,6 +594,7 @@ class TeacherPanelController extends Controller
                     'q.id',
                     'q.title',
                     'q.description',
+                    'q.quiz_type',
                     'q.due_date',
                     'q.is_active',
                     'q.created_at',
@@ -600,12 +608,19 @@ class TeacherPanelController extends Controller
                     't.email as teacher_email',
                 ]);
 
+            if ($quizTypeFilter !== '') {
+                $rows = $rows->filter(static fn (object $row): bool => strtolower((string) ($row->quiz_type ?? 'quiz')) === $quizTypeFilter)->values();
+            }
+
             return response()->json([
                 'data' => $rows->map(function (object $row) {
                     return [
                         'id' => (int) $row->id,
                         'title' => (string) $row->title,
                         'description' => $row->description ? (string) $row->description : null,
+                        'quiz_type' => in_array(strtolower((string) ($row->quiz_type ?? 'quiz')), ['quiz', 'test'], true)
+                            ? strtolower((string) $row->quiz_type)
+                            : 'quiz',
                         'due_date' => $row->due_date ? (string) $row->due_date : null,
                         'is_active' => (bool) $row->is_active,
                         'assignment_status' => (string) $row->assignment_status,
@@ -629,11 +644,16 @@ class TeacherPanelController extends Controller
                 'q.id',
                 'q.title',
                 'q.description',
+                'q.quiz_type',
                 'q.due_date',
                 'q.is_active',
                 'q.created_at',
                 'q.updated_at',
             ]);
+
+        if ($quizTypeFilter !== '') {
+            $rows = $rows->filter(static fn (object $row): bool => strtolower((string) ($row->quiz_type ?? 'quiz')) === $quizTypeFilter)->values();
+        }
 
         $quizIds = $rows->pluck('id')->values();
         $questionCounts = [];
@@ -661,6 +681,9 @@ class TeacherPanelController extends Controller
                     'id' => $quizId,
                     'title' => (string) $row->title,
                     'description' => $row->description ? (string) $row->description : null,
+                    'quiz_type' => in_array(strtolower((string) ($row->quiz_type ?? 'quiz')), ['quiz', 'test'], true)
+                        ? strtolower((string) $row->quiz_type)
+                        : 'quiz',
                     'due_date' => $row->due_date ? (string) $row->due_date : null,
                     'is_active' => (bool) $row->is_active,
                     'questions_count' => (int) ($questionCounts[$quizId] ?? 0),
@@ -737,6 +760,9 @@ class TeacherPanelController extends Controller
                 'id' => (int) $quiz->id,
                 'title' => (string) $quiz->title,
                 'description' => $quiz->description ? (string) $quiz->description : null,
+                'quiz_type' => in_array(strtolower((string) ($quiz->quiz_type ?? 'quiz')), ['quiz', 'test'], true)
+                    ? strtolower((string) $quiz->quiz_type)
+                    : 'quiz',
                 'due_date' => $quiz->due_date ? (string) $quiz->due_date : null,
                 'is_active' => (bool) $quiz->is_active,
                 'questions' => $questions,
@@ -763,6 +789,7 @@ class TeacherPanelController extends Controller
         $data = $request->validate([
             'title' => ['required', 'string', 'max:180'],
             'description' => ['nullable', 'string', 'max:5000'],
+            'quiz_type' => ['nullable', 'string', 'max:24'],
             'due_date' => ['nullable', 'date'],
             'is_active' => ['nullable', 'boolean'],
             'student_user_ids' => ['nullable', 'array'],
@@ -797,6 +824,9 @@ class TeacherPanelController extends Controller
                 'created_by_user_id' => (int) $user->id,
                 'title' => trim((string) $data['title']),
                 'description' => trim((string) ($data['description'] ?? '')) ?: null,
+                'quiz_type' => in_array(strtolower((string) ($data['quiz_type'] ?? 'quiz')), ['quiz', 'test'], true)
+                    ? strtolower((string) ($data['quiz_type'] ?? 'quiz'))
+                    : 'quiz',
                 'due_date' => $data['due_date'] ?? null,
                 'is_active' => (bool) ($data['is_active'] ?? true),
                 'created_at' => $now,
