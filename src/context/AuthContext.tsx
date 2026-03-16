@@ -4,7 +4,7 @@ import { Me, getMe, login as apiLogin, logout as apiLogout, register as apiRegis
 type AuthCtx = {
   user: Me | null
   loading: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<Me>
   register: (payload: {
     imie: string
     email: string
@@ -24,15 +24,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getMe().then(setUser).catch(() => setUser(null)).finally(() => setLoading(false))
   }, [])
 
-  async function login(email: string, password: string) {
-    try {
-      const me = await apiLogin(email, password)
-      setUser(me)
-      return true
-    } catch (e) {
-      setUser(null)
-      throw e
-    }
+  async function login(email: string, password: string): Promise<Me> {
+    const me = await apiLogin(email, password)
+    setUser(me)
+    return me
   }
 
   async function register(payload: {

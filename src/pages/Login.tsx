@@ -2,6 +2,15 @@ import { FormEvent, useState } from 'react'
 import { useAuth } from '@/context/AuthContext'
 import { Link, useNavigate } from 'react-router-dom'
 
+function getPrimaryAppPath(apps: string[]): string {
+  if (apps.includes('neuronetix')) return '/neuronetix/dashboard'
+  if (apps.includes('taskora')) return '/taskora/dashboard'
+  if (apps.includes('optivio')) return '/optivio/dashboard'
+  if (apps.includes('chic')) return '/grafiki/dashboard'
+  if (apps.includes('admin')) return '/admin/dashboard'
+  return '/dashboard'
+}
+
 export default function Login() {
   const { login } = useAuth()
   const nav = useNavigate()
@@ -15,8 +24,9 @@ export default function Login() {
     setError(undefined)
     setGoogleInfo(undefined)
     try {
-      const ok = await login(email, password)
-      if (ok) nav('/dashboard')
+      const me = await login(email, password)
+      const apps = me?.access?.apps || []
+      nav(getPrimaryAppPath(apps))
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Nie udało się zalogować')
     }

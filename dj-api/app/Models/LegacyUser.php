@@ -192,7 +192,7 @@ class LegacyUser extends Authenticatable
                 $panelList = array_values(array_filter($panelList, static fn (string $panel): bool => $panel !== 'teacher'));
             }
 
-            if ($appKey === 'neuronetix' && !in_array($role, ['uczen', 'student', 'admin', 'owner'], true)) {
+            if ($appKey === 'neuronetix' && !in_array($role, ['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner'], true)) {
                 $panelList = array_values(array_filter(
                     $panelList,
                     static fn (string $panel): bool => !in_array($panel, ['student', 'student_tasks', 'student_quizzes', 'student_tests'], true)
