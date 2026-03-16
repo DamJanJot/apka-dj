@@ -58,6 +58,8 @@ export default function StudentSubjectDetailPage() {
   const [materialType, setMaterialType] = useState<'notatka' | 'link' | 'plik'>('notatka')
   const [materialLinkUrl, setMaterialLinkUrl] = useState('')
   const [materialFileName, setMaterialFileName] = useState('')
+  const [importRaw, setImportRaw] = useState('')
+  const [openEditor, setOpenEditor] = useState<'none' | 'section' | 'material' | 'import'>('none')
 
   const [notice, setNotice] = useState('')
 
@@ -151,6 +153,106 @@ export default function StudentSubjectDetailPage() {
     setNotice('Material zostal dodany.')
   }
 
+  const submitImport = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!canEdit) return
+
+    const lines = importRaw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+
+    if (lines.length === 0) {
+      setNotice('Wklej dane do importu.')
+      return
+    }
+
+    const sectionByTitle = new Map<string, SubjectSection>()
+    for (const section of sections) {
+      sectionByTitle.set(section.title.toLowerCase(), section)
+    }
+
+    const nextSections = [...sections]
+    const nextMaterials = [...materials]
+
+    let addedSections = 0
+    let addedMaterials = 0
+
+    for (const line of lines) {
+      if (line.startsWith('DZIAL|')) {
+        const [, titleRaw = '', descriptionRaw = ''] = line.split('|')
+        const title = titleRaw.trim()
+        if (!title) continue
+
+        const key = title.toLowerCase()
+        if (sectionByTitle.has(key)) continue
+
+        const section: SubjectSection = {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          title,
+          description: descriptionRaw.trim(),
+          createdAt: new Date().toISOString(),
+        }
+
+        sectionByTitle.set(key, section)
+        nextSections.unshift(section)
+        addedSections += 1
+        continue
+      }
+
+      if (line.startsWith('MATERIAL|')) {
+        const parts = line.split('|')
+        const sectionTitle = (parts[1] || '').trim()
+        const materialTypeRaw = (parts[2] || '').trim().toLowerCase()
+        const title = (parts[3] || '').trim()
+        const description = (parts[4] || '').trim()
+        const extra = (parts[5] || '').trim()
+
+        if (!sectionTitle || !title) continue
+
+        let section = sectionByTitle.get(sectionTitle.toLowerCase())
+        if (!section) {
+          section = {
+            id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+            title: sectionTitle,
+            description: '',
+            createdAt: new Date().toISOString(),
+          }
+          sectionByTitle.set(sectionTitle.toLowerCase(), section)
+          nextSections.unshift(section)
+          addedSections += 1
+        }
+
+        const materialType: 'notatka' | 'link' | 'plik' =
+          materialTypeRaw === 'link' || materialTypeRaw === 'plik' ? materialTypeRaw : 'notatka'
+
+        const material: SubjectMaterial = {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          sectionId: section.id,
+          title,
+          description,
+          materialType,
+          linkUrl: materialType === 'link' ? extra : '',
+          fileName: materialType === 'plik' ? extra : '',
+          createdAt: new Date().toISOString(),
+        }
+
+        nextMaterials.unshift(material)
+        addedMaterials += 1
+      }
+    }
+
+    if (!addedSections && !addedMaterials) {
+      setNotice('Nie znaleziono poprawnych linii do importu.')
+      return
+    }
+
+    saveAll(nextSections, nextMaterials)
+    setImportRaw('')
+    setOpenEditor('none')
+    setNotice(`Zaimportowano: dzialy ${addedSections}, materialy ${addedMaterials}.`)
+  }
+
   if (!subject) {
     return (
       <section className="card" style={{ padding: 20 }}>
@@ -175,43 +277,96 @@ export default function StudentSubjectDetailPage() {
       {canEdit && (
         <div className="subject-edit-grid">
           <article className="card" style={{ margin: 0 }}>
-            <h2 style={{ marginTop: 0 }}>Dodaj dzial</h2>
-            <form onSubmit={submitSection} className="subject-form-grid">
-              <input className="admin-field" value={sectionTitle} onChange={(event) => setSectionTitle(event.target.value)} placeholder="Np. Dzial 1 - Funkcje" />
-              <textarea className="admin-field" value={sectionDescription} onChange={(event) => setSectionDescription(event.target.value)} placeholder="Opis dzialu" rows={3} />
-              <button type="submit" className="btn btn-primary">Dodaj dzial</button>
-            </form>
+            <h2 style={{ marginTop: 0 }}>Akcje</h2>
+            <div className="subject-actions-row">
+              <button
+                type="button"
+                className={`btn ${openEditor === 'section' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setOpenEditor((prev) => (prev === 'section' ? 'none' : 'section'))}
+              >
+                Dodaj dzial
+              </button>
+              <button
+                type="button"
+                className={`btn ${openEditor === 'material' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setOpenEditor((prev) => (prev === 'material' ? 'none' : 'material'))}
+              >
+                Dodaj material
+              </button>
+              <button
+                type="button"
+                className={`btn ${openEditor === 'import' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setOpenEditor((prev) => (prev === 'import' ? 'none' : 'import'))}
+              >
+                Import
+              </button>
+            </div>
           </article>
 
-          <article className="card" style={{ margin: 0 }}>
-            <h2 style={{ marginTop: 0 }}>Dodaj material</h2>
-            <form onSubmit={submitMaterial} className="subject-form-grid">
-              <select className="admin-field" value={materialSectionId} onChange={(event) => setMaterialSectionId(event.target.value)}>
-                <option value="">Wybierz dzial</option>
-                {sections.map((section) => (
-                  <option key={section.id} value={section.id}>{section.title}</option>
-                ))}
-              </select>
-              <input className="admin-field" value={materialTitle} onChange={(event) => setMaterialTitle(event.target.value)} placeholder="Tytul materialu" />
-              <textarea className="admin-field" value={materialDescription} onChange={(event) => setMaterialDescription(event.target.value)} placeholder="Opis" rows={3} />
+          {openEditor === 'section' && (
+            <article className="card" style={{ margin: 0 }}>
+              <h2 style={{ marginTop: 0 }}>Dodaj dzial</h2>
+              <form onSubmit={submitSection} className="subject-form-grid">
+                <input className="subject-field" value={sectionTitle} onChange={(event) => setSectionTitle(event.target.value)} placeholder="Np. Dzial 1 - Funkcje" />
+                <textarea className="subject-field" value={sectionDescription} onChange={(event) => setSectionDescription(event.target.value)} placeholder="Opis dzialu" rows={3} />
+                <button type="submit" className="btn btn-primary">Zapisz dzial</button>
+              </form>
+            </article>
+          )}
 
-              <select className="admin-field" value={materialType} onChange={(event) => setMaterialType(event.target.value as 'notatka' | 'link' | 'plik')}>
-                <option value="notatka">Notatka</option>
-                <option value="link">Link</option>
-                <option value="plik">Plik</option>
-              </select>
+          {openEditor === 'material' && (
+            <article className="card" style={{ margin: 0 }}>
+              <h2 style={{ marginTop: 0 }}>Dodaj material</h2>
+              <form onSubmit={submitMaterial} className="subject-form-grid">
+                <select className="subject-field" value={materialSectionId} onChange={(event) => setMaterialSectionId(event.target.value)}>
+                  <option value="">Wybierz dzial</option>
+                  {sections.map((section) => (
+                    <option key={section.id} value={section.id}>{section.title}</option>
+                  ))}
+                </select>
+                <input className="subject-field" value={materialTitle} onChange={(event) => setMaterialTitle(event.target.value)} placeholder="Tytul materialu" />
+                <textarea className="subject-field" value={materialDescription} onChange={(event) => setMaterialDescription(event.target.value)} placeholder="Opis" rows={3} />
 
-              {materialType === 'link' && (
-                <input className="admin-field" value={materialLinkUrl} onChange={(event) => setMaterialLinkUrl(event.target.value)} placeholder="https://..." />
-              )}
+                <select className="subject-field" value={materialType} onChange={(event) => setMaterialType(event.target.value as 'notatka' | 'link' | 'plik')}>
+                  <option value="notatka">Notatka</option>
+                  <option value="link">Link</option>
+                  <option value="plik">Plik</option>
+                </select>
 
-              {materialType === 'plik' && (
-                <input className="admin-field" value={materialFileName} onChange={(event) => setMaterialFileName(event.target.value)} placeholder="Nazwa pliku (np. notatki.pdf)" />
-              )}
+                {materialType === 'link' && (
+                  <input className="subject-field" value={materialLinkUrl} onChange={(event) => setMaterialLinkUrl(event.target.value)} placeholder="https://..." />
+                )}
 
-              <button type="submit" className="btn btn-primary">Dodaj material</button>
-            </form>
-          </article>
+                {materialType === 'plik' && (
+                  <input className="subject-field" value={materialFileName} onChange={(event) => setMaterialFileName(event.target.value)} placeholder="Nazwa pliku (np. notatki.pdf)" />
+                )}
+
+                <button type="submit" className="btn btn-primary">Zapisz material</button>
+              </form>
+            </article>
+          )}
+
+          {openEditor === 'import' && (
+            <article className="card" style={{ margin: 0 }}>
+              <h2 style={{ marginTop: 0 }}>Import dzialow i materialow</h2>
+              <form onSubmit={submitImport} className="subject-form-grid">
+                <textarea
+                  className="subject-field subject-import-field"
+                  value={importRaw}
+                  onChange={(event) => setImportRaw(event.target.value)}
+                  placeholder={[
+                    'Format linii:',
+                    'DZIAL|Nazwa dzialu|Opis dzialu',
+                    'MATERIAL|Nazwa dzialu|notatka|Tytul|Opis|',
+                    'MATERIAL|Nazwa dzialu|link|Tytul|Opis|https://adres',
+                    'MATERIAL|Nazwa dzialu|plik|Tytul|Opis|nazwa-pliku.pdf',
+                  ].join('\n')}
+                  rows={8}
+                />
+                <button type="submit" className="btn btn-primary">Importuj</button>
+              </form>
+            </article>
+          )}
         </div>
       )}
 
