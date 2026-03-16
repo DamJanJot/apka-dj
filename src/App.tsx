@@ -15,6 +15,8 @@ import StudentPanel from '@/pages/StudentPanel'
 import StudentTasksPage from '@/pages/StudentTasksPage'
 import StudentQuizzesPage from '@/pages/StudentQuizzesPage'
 import StudentTestsPage from '@/pages/StudentTestsPage'
+import StudentSubjectsPage from '@/pages/StudentSubjectsPage'
+import StudentSubjectDetailPage from '@/pages/StudentSubjectDetailPage'
 import AdminDashboard from '@/pages/AdminDashboard'
 import AdminUsers from '@/pages/AdminUsers'
 import AdminRoles from '@/pages/AdminRoles'
@@ -149,7 +151,7 @@ export default function App() {
         <Route
           path="neuronetix/student/tasks"
           element={
-            <AppPanelOnly app="neuronetix" panel="student_tasks" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+            <AppPanelOnly app="neuronetix" panel="student_tasks" allowedRoles={['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner']}>
               <StudentTasksPage />
             </AppPanelOnly>
           }
@@ -157,7 +159,7 @@ export default function App() {
         <Route
           path="neuronetix/student/quizzes"
           element={
-            <AppPanelOnly app="neuronetix" panel="student_quizzes" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+            <AppPanelOnly app="neuronetix" panel="student_quizzes" allowedRoles={['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner']}>
               <StudentQuizzesPage />
             </AppPanelOnly>
           }
@@ -165,8 +167,24 @@ export default function App() {
         <Route
           path="neuronetix/student/tests"
           element={
-            <AppPanelOnly app="neuronetix" panel="student_tests" allowedRoles={['uczen', 'student', 'admin', 'owner']}>
+            <AppPanelOnly app="neuronetix" panel="student_tests" allowedRoles={['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner']}>
               <StudentTestsPage />
+            </AppPanelOnly>
+          }
+        />
+        <Route
+          path="neuronetix/subjects"
+          element={
+            <AppPanelOnly app="neuronetix" panel="subjects" allowedRoles={['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner']}>
+              <StudentSubjectsPage />
+            </AppPanelOnly>
+          }
+        />
+        <Route
+          path="neuronetix/subjects/:subjectKey"
+          element={
+            <AppPanelOnly app="neuronetix" panel="subjects" allowedRoles={['uczen', 'student', 'nauczyciel', 'teacher', 'admin', 'owner']}>
+              <StudentSubjectDetailPage />
             </AppPanelOnly>
           }
         />

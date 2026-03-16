@@ -220,6 +220,14 @@ body.sidebar-collapsed .layout {
   padding: 8px 10px;
   border-radius: 10px;
 }
+
+.nav-subitem {
+  margin-left: 18px;
+  width: calc(100% - 18px);
+  opacity: 0.95;
+  border-left: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 0 10px 10px 0;
+}
 .nav-item:hover,
 .nav-item.active {
   background: #1f2937;
@@ -280,6 +288,11 @@ body.sidebar-collapsed .brand-caret {
 }
 body.sidebar-collapsed .nav-item {
   justify-content: center;
+}
+body.sidebar-collapsed .nav-subitem {
+  margin-left: 0;
+  width: 100%;
+  border-left: 0;
 }
 body.sidebar-collapsed .link-text {
   display: none;
@@ -3116,6 +3129,68 @@ body.sidebar-collapsed .brand-project-menu {
     rgba(30, 64, 175, 0.6),
     rgba(30, 64, 175, 0.3)
   );
+}
+
+.subject-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.subject-card-link {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.subject-card-link h2 {
+  margin: 0;
+}
+
+.subject-card-link p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.subject-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.subject-form-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.subject-sections-list {
+  display: grid;
+  gap: 12px;
+}
+
+.subject-section-card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  display: grid;
+  gap: 10px;
+}
+
+.subject-materials-list {
+  display: grid;
+  gap: 8px;
+}
+
+.subject-material-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 button.makao-card-face {

@@ -59,6 +59,8 @@ export default function Topbar() {
       if (loc.pathname.endsWith('/student/tasks')) return 'Zadania ucznia'
       if (loc.pathname.endsWith('/student/tests')) return 'Testy ucznia'
       if (loc.pathname.endsWith('/student/quizzes')) return 'Quizy ucznia'
+      if (loc.pathname.endsWith('/subjects')) return 'Przedmioty'
+      if (loc.pathname.includes('/subjects/')) return 'Przedmiot'
       if (loc.pathname.endsWith('/teacher')) return 'Panel nauczyciela'
       if (loc.pathname.endsWith('/student')) return 'Panel ucznia'
       if (loc.pathname.endsWith('/docs')) return 'Documentation'
