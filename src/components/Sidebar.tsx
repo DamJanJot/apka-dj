@@ -167,6 +167,13 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
   return `/${app}/dashboard`
 }
 
+// Which child paths should cause a parent nav-item to also appear active.
+// Key = parent NavItemId, values = path prefixes of its children.
+const PARENT_ACTIVE_PREFIXES: Partial<Record<NavItemId, string[]>> = {
+  teacher: ['/neuronetix/student/tasks', '/neuronetix/student/quizzes', '/neuronetix/student/tests'],
+  student: ['/neuronetix/student/tasks', '/neuronetix/student/quizzes', '/neuronetix/student/tests'],
+}
+
 export default function Sidebar() {
     const navSubItemIds: NavItemId[] = ['student_tasks', 'student_quizzes', 'student_tests', 'subject_math', 'subject_polish', 'subject_english', 'subject_it']
 
@@ -279,13 +286,25 @@ export default function Sidebar() {
       </div>
 
       <nav className="side-nav">
-        {visibleMainNav.map((item) => (
-          <NavLink key={item.id} to={item.id === 'dashboard' ? startPath : item.to} title={item.title} className={`nav-item${navSubItemIds.includes(item.id) ? ' nav-subitem' : ''}`}>
-            {item.icon}
-            <span className="link-text">{item.label}</span>
-            {item.id === 'friends' && incomingCount > 0 && <span className="nav-badge">{incomingCount}</span>}
-          </NavLink>
-        ))}
+        {visibleMainNav.map((item) => {
+          const childPrefixes = PARENT_ACTIVE_PREFIXES[item.id]
+          const isParentActive = !!childPrefixes?.some((prefix) => location.pathname.startsWith(prefix))
+
+          return (
+            <NavLink
+              key={item.id}
+              to={item.id === 'dashboard' ? startPath : item.to}
+              title={item.title}
+              className={({ isActive }) =>
+                `nav-item${navSubItemIds.includes(item.id) ? ' nav-subitem' : ''}${isActive || isParentActive ? ' active' : ''}`
+              }
+            >
+              {item.icon}
+              <span className="link-text">{item.label}</span>
+              {item.id === 'friends' && incomingCount > 0 && <span className="nav-badge">{incomingCount}</span>}
+            </NavLink>
+          )
+        })}
       </nav>
 
       <div className="side-footer">
