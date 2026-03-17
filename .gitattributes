@@ -1,1 +1,25 @@
 * text=auto eol=lf
+
+# Linguist — ukryj pliki klasyfikowane jako "Other"
+tsconfig.tsbuildinfo linguist-generated
+*.tsbuildinfo linguist-generated
+
+Dockerfile linguist-detectable=false
+.dockerignore linguist-detectable=false
+.editorconfig linguist-detectable=false
+.htaccess linguist-detectable=false
+artisan linguist-detectable=false
+robots.txt linguist-detectable=false
+
+dj-api/Dockerfile linguist-detectable=false
+dj-api/.dockerignore linguist-detectable=false
+dj-api/.editorconfig linguist-detectable=false
+dj-api/artisan linguist-detectable=false
+dj-api/public/.htaccess linguist-detectable=false
+dj-api/public/robots.txt linguist-detectable=false
+
+# cba_upload_package to paczka wdrożeniowa — ignoruj w statystykach
+cba_upload_package/** linguist-vendored
+
+# Skrypty pomocnicze — nie zliczaj
+scripts/** linguist-detectable=false
