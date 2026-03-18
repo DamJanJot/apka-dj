@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound, Gamepad2, ChevronDown, Settings, CalendarDays, KanbanSquare } from 'lucide-react'
+import { Info, LayoutDashboard, Newspaper, LineChart, BookText, MessageSquare, UsersRound, Users, Gamepad2, ChevronDown, Settings, CalendarDays, KanbanSquare, ListTodo, CircleUser, ClipboardType, CodeXml, DraftingCompass } from 'lucide-react'
 import { getFriendsOverview } from '@/api/client'
 import { APP_LABELS, AppKey, detectAppFromPath, isNavVisible, NavItemId } from '@/lib/shellSettings'
 import { useAuth } from '@/context/AuthContext'
@@ -15,17 +15,17 @@ type NavDef = {
 
 const NAV_DEFS: NavDef[] = [
   { id: 'dashboard', label: 'Dashboard', to: '/dashboard', title: 'Dashboard', icon: <LayoutDashboard className="nav-icon" size={18} /> },
-  { id: 'teacher', label: 'Panel nauczyciela', to: '/neuronetix/teacher', title: 'Panel nauczyciela', icon: <UsersRound className="nav-icon" size={18} /> },
+  { id: 'teacher', label: 'Panel nauczyciela', to: '/neuronetix/teacher', title: 'Panel nauczyciela', icon: <CircleUser className="nav-icon" size={18} /> },
   { id: 'student', label: 'Panel ucznia', to: '/neuronetix/student', title: 'Panel ucznia', icon: <BookText className="nav-icon" size={18} /> },
   { id: 'student_tasks', label: 'Zadania ucznia', to: '/neuronetix/student/tasks', title: 'Zadania ucznia', icon: <KanbanSquare className="nav-icon" size={18} /> },
-  { id: 'student_quizzes', label: 'Quizy ucznia', to: '/neuronetix/student/quizzes', title: 'Quizy ucznia', icon: <BookText className="nav-icon" size={18} /> },
-  { id: 'student_tests', label: 'Testy ucznia', to: '/neuronetix/student/tests', title: 'Testy ucznia', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'student_quizzes', label: 'Quizy ucznia', to: '/neuronetix/student/quizzes', title: 'Quizy ucznia', icon: <ListTodo className="nav-icon" size={18} /> },
+  { id: 'student_tests', label: 'Testy ucznia', to: '/neuronetix/student/tests', title: 'Testy ucznia', icon: <ClipboardType className="nav-icon" size={18} /> },
   { id: 'subjects', label: 'Przedmioty', to: '/neuronetix/subjects', title: 'Przedmioty', icon: <BookText className="nav-icon" size={18} /> },
-  { id: 'subject_math', label: 'Matematyka', to: '/neuronetix/subjects/matematyka', title: 'Matematyka', icon: <BookText className="nav-icon" size={18} /> },
+  { id: 'subject_math', label: 'Matematyka', to: '/neuronetix/subjects/matematyka', title: 'Matematyka', icon: <DraftingCompass className="nav-icon" size={18} /> },
   { id: 'subject_polish', label: 'Jezyk polski', to: '/neuronetix/subjects/jezyk-polski', title: 'Jezyk polski', icon: <BookText className="nav-icon" size={18} /> },
   { id: 'subject_english', label: 'Jezyk angielski', to: '/neuronetix/subjects/jezyk-angielski', title: 'Jezyk angielski', icon: <BookText className="nav-icon" size={18} /> },
-  { id: 'subject_it', label: 'Informatyka', to: '/neuronetix/subjects/informatyka', title: 'Informatyka', icon: <BookText className="nav-icon" size={18} /> },
-  { id: 'users', label: 'Uzytkownicy', to: '/admin/users', title: 'Uzytkownicy', icon: <UsersRound className="nav-icon" size={18} /> },
+  { id: 'subject_it', label: 'Informatyka', to: '/neuronetix/subjects/informatyka', title: 'Informatyka', icon: <CodeXml className="nav-icon" size={18} /> },
+  { id: 'users', label: 'Uzytkownicy', to: '/admin/users', title: 'Uzytkownicy', icon: <Users className="nav-icon" size={18} /> },
   { id: 'roles', label: 'Role', to: '/admin/roles', title: 'Role', icon: <Settings className="nav-icon" size={18} /> },
   { id: 'assignments', label: 'Przypisania', to: '/admin/assignments', title: 'Przypisania', icon: <KanbanSquare className="nav-icon" size={18} /> },
   { id: 'relations', label: 'Relacje', to: '/admin/relations', title: 'Relacje', icon: <UsersRound className="nav-icon" size={18} /> },
@@ -167,15 +167,13 @@ function toAppPath(app: AppKey, navId: NavItemId): string {
   return `/${app}/dashboard`
 }
 
-// Which child paths should cause a parent nav-item to also appear active.
-// Key = parent NavItemId, values = path prefixes of its children.
-const PARENT_ACTIVE_PREFIXES: Partial<Record<NavItemId, string[]>> = {
-  teacher: ['/neuronetix/student/tasks', '/neuronetix/student/quizzes', '/neuronetix/student/tests'],
-  student: ['/neuronetix/student/tasks', '/neuronetix/student/quizzes', '/neuronetix/student/tests'],
+// Parent items that should stay highlighted while browsing selected child panels.
+const PARENT_ACTIVE_CHILD_IDS: Partial<Record<NavItemId, NavItemId[]>> = {
+  teacher: ['student_tasks', 'student_quizzes', 'student_tests'],
 }
 
 export default function Sidebar() {
-    const navSubItemIds: NavItemId[] = ['student_tasks', 'student_quizzes', 'student_tests', 'subject_math', 'subject_polish', 'subject_english', 'subject_it']
+  const navSubItemIds: NavItemId[] = ['student_tasks', 'student_quizzes', 'student_tests', 'subject_math', 'subject_polish', 'subject_english', 'subject_it']
 
   const { user } = useAuth()
   const location = useLocation()
@@ -287,7 +285,7 @@ export default function Sidebar() {
 
       <nav className="side-nav">
         {visibleMainNav.map((item) => {
-          const childPrefixes = PARENT_ACTIVE_PREFIXES[item.id]
+          const childPrefixes = (PARENT_ACTIVE_CHILD_IDS[item.id] || []).map((childId) => toAppPath(currentApp, childId))
           const isParentActive = !!childPrefixes?.some((prefix) => location.pathname.startsWith(prefix))
 
           return (
