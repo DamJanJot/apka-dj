@@ -6,6 +6,76 @@
   --line: rgba(255, 255, 255, 0.12);
 }
 
+@keyframes cardThrow {
+  0% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) rotateZ(0deg) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateX(50px) translateY(-80px) rotateZ(15deg) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(-150px) rotateZ(-5deg) scale(1);
+  }
+}
+
+@keyframes cardDraw {
+  0% {
+    opacity: 0;
+    transform: translateX(-100px) translateY(100px) scale(0.8);
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+  }
+}
+
+@keyframes cardAppear {
+  0% {
+    opacity: 0;
+    scale: 0.9;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@keyframes topCardFlip {
+  0% {
+    transform: rotateY(0deg) scale(1);
+  }
+  50% {
+    transform: rotateY(90deg) scale(1.1);
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+  }
+}
+
+@keyframes deckPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes buttonPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(14, 165, 233, 0);
+  }
+}
+
 * { box-sizing: border-box; }
 body {
   margin: 0;
@@ -210,6 +280,19 @@ button.card.selected {
   box-shadow: 0 10px 16px rgba(2, 8, 23, 0.35);
 }
 
+.card.throwing {
+  animation: cardThrow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.card.drawing {
+  animation: cardDraw 0.5s ease-out;
+}
+
+.card.new {
+  animation: cardAppear 0.4s ease-out;
+}
+
 .card.red { color: #dc2626; }
 .card.black { color: #111827; }
 .card.down {
@@ -224,9 +307,27 @@ button.card.selected {
   align-items: center;
   gap: 5px;
   line-height: 1;
+  position: relative;
+  width: 100%;
 }
 .card-content .rank { font-size: 1rem; font-weight: 800; }
 .card-content .suit { font-size: 2rem; font-weight: 700; }
+.card-number {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 20px;
+  height: 20px;
+  background: #0ea5e9;
+  color: #111827;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 2px solid #111827;
+}
 
 .picker {
   display: flex;
@@ -237,6 +338,19 @@ button.card.selected {
   padding: 10px;
   background: rgba(56, 189, 248, 0.08);
 }
+
+#topCard.flip-animation {
+  animation: topCardFlip 0.5s ease-in-out;
+}
+
+.card.down.deck-pulse {
+  animation: deckPulse 0.4s ease-out;
+}
+
+button#throwBtn:not(:disabled).active {
+  animation: buttonPulse 1s infinite;
+}
+
 .hidden { display: none; }
 
 .matches {

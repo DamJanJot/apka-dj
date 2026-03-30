@@ -15,15 +15,15 @@ $dbError = $db['error'];
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Makao CBA</title>
+  <title>Makao</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <?php $roomCodeFromUrl = isset($_GET['room']) ? preg_replace('/[^A-Z0-9]/', '', strtoupper((string)$_GET['room'])) : ''; ?>
   <main class="wrap">
     <header class="top">
-      <h1>Makao CBA</h1>
-      <p>Wersja gotowa do uploadu na CBA (PHP + MySQL).</p>
+      <h1>Makao</h1>
+      <p></p>
     </header>
 
     <?php if (!$pdo): ?>
@@ -45,7 +45,7 @@ $dbError = $db['error'];
         <label for="mode">Tryb</label>
         <select id="mode">
           <option value="bot">Gra z botem</option>
-          <option value="link">Link 2 osoby (bez wspolnego ekranu)</option>
+          <option value="link">Link 2 osoby</option>
         </select>
       </div>
 
