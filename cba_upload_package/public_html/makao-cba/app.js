@@ -42,6 +42,10 @@
     saving: false,
     syncing: false,
     clientId: 0,
+    previousHandIds: [],
+    throwingCards: new Set(),
+    previousTopCardId: null,
+    previousDeckCount: 0,
   };
 
   function getOrCreateClientId() {
@@ -79,8 +83,11 @@
     return card.suit === 'hearts' || card.suit === 'diamonds' ? 'red' : 'black';
   }
 
-  function cardHtml(card) {
-    return `<span class="card-content"><span class="rank">${card.rank}</span><span class="suit">${suitSymbol(card.suit)}</span></span>`;
+  function cardHtml(card, selectedIndex) {
+    const numberSpan = selectedIndex !== undefined && selectedIndex >= 0 
+      ? `<span class="card-number">${selectedIndex + 1}</span>`
+      : '';
+    return `<span class="card-content">${numberSpan}<span class="rank">${card.rank}</span><span class="suit">${suitSymbol(card.suit)}</span></span>`;
   }
 
   function shuffle(arr) {
@@ -243,10 +250,12 @@
     if (!selected.length) return [];
     if (!selected.every((c) => c.rank === selected[0].rank)) return [];
 
-    const lead = selected[selected.length - 1];
-    if (!canPlayCard(game, lead)) return [];
+    // W Makao, gdy wyrzucamy wiele kart o tej samej figurze, 
+    // tylko PIERWSZA karta musi się nadawać do gry
+    const first = selected[0];
+    if (!canPlayCard(game, first)) return [];
 
-    if (game.pendingRequest && selected[0].rank !== game.pendingRequest && selected[0].rank !== 'J') return [];
+    if (game.pendingRequest && first.rank !== game.pendingRequest && first.rank !== 'J') return [];
     return selected;
   }
 
@@ -289,7 +298,9 @@
     }
 
     if (game.pendingSkipCount > 0) {
-      game.pendingSkipCount += cards.filter((c) => c.rank === '4').length;
+      // Gdy gracz czeka i wyrzuci 4, to czeka zostaje "spłacone" (zredukowane)
+      // To pozwala graczowi na aktywna grę zamiast pasywnego czekania
+      game.pendingSkipCount = Math.max(0, game.pendingSkipCount - cards.filter((c) => c.rank === '4').length);
       game.activeSuit = lead.suit;
       game.turnUserId = oppId;
       return;
@@ -366,6 +377,8 @@
   function drawActionOn(game, actorId) {
     const oppId = actorId === myId() ? opponentId() : myId();
 
+    // Jeśli gracz czeka, zmniejsz licznik i przejdź do następnego gracza
+    // Gracz czeka TĘ turę bez brania karty
     if (game.pendingSkipCount > 0) {
       game.pendingSkipCount = Math.max(0, game.pendingSkipCount - 1);
       game.turnUserId = oppId;
@@ -490,18 +503,50 @@
 
     setStatus(statusText(game));
 
+    // Efekt pulsowania na talii gdy zmienia się liczba kart
+    const currentDeckCount = game ? game.deck.length : 0;
+    if (currentDeckCount !== state.previousDeckCount) {
+      el.deckCount.classList.add('deck-pulse');
+      setTimeout(() => {
+        el.deckCount.classList.remove('deck-pulse');
+      }, 400);
+    }
+    state.previousDeckCount = currentDeckCount;
+    
     el.deckCount.textContent = game ? String(game.deck.length) : '0';
+    
+    // Efekt flip na górnej karcie gdy się zmienia
+    const currentTopCardId = top ? `${top.suit}-${top.rank}` : null;
+    if (currentTopCardId && currentTopCardId !== state.previousTopCardId && state.previousTopCardId !== null) {
+      el.topCard.classList.add('flip-animation');
+      setTimeout(() => {
+        el.topCard.classList.remove('flip-animation');
+      }, 500);
+    }
+    state.previousTopCardId = currentTopCardId;
+    
     el.topCard.className = `card ${top ? cardClass(top) : ''}`;
-    el.topCard.innerHTML = top ? cardHtml(top) : '-';
+    el.topCard.innerHTML = top ? cardHtml(top, -1) : '-';
     el.activeSuit.textContent = `Aktywny kolor: ${game && game.activeSuit ? suitName(game.activeSuit) : '-'}`;
 
     const myHand = game ? getHand(game, myId()) : [];
     const selectedSet = new Set(state.selected);
+    const previousHandSet = new Set(state.previousHandIds);
+    
     el.playerCards.innerHTML = myHand.map((card) => {
       const playable = game && canAct(game) && canPlayCard(game, card);
       const selected = selectedSet.has(card.id);
-      return `<button data-id="${card.id}" class="card ${cardClass(card)} ${playable ? 'playable' : ''} ${selected ? 'selected' : ''}">${cardHtml(card)}</button>`;
+      const selectedIndex = selected ? state.selected.indexOf(card.id) : -1;
+      
+      const isNew = !previousHandSet.has(card.id);
+      const isThrowing = state.throwingCards.has(card.id);
+      const animClass = isThrowing ? 'throwing' : (isNew ? 'new' : '');
+      
+      return `<button data-id="${card.id}" class="card ${cardClass(card)} ${playable ? 'playable' : ''} ${selected ? 'selected' : ''} ${animClass}">${cardHtml(card, selectedIndex)}</button>`;
     }).join('');
+    
+    // Aktualizuj track poprzednich kart
+    state.previousHandIds = myHand.map((c) => c.id);
 
     const oppHand = game ? getHand(game, opponentId()) : [];
     el.opponentCards.innerHTML = oppHand.map(() => '<div class="card down"></div>').join('');
@@ -509,6 +554,13 @@
     const throwCount = game && canAct(game) ? selectedPlayableCards(game).length : 0;
     el.throwBtn.disabled = !throwCount;
     el.throwBtn.textContent = throwCount > 0 ? `Rzuc (${throwCount})` : 'Rzuc';
+    
+    // Efekt pulsowania na przycisku gdy są kartty do wyrzucenia
+    if (throwCount > 0) {
+      el.throwBtn.classList.add('active');
+    } else {
+      el.throwBtn.classList.remove('active');
+    }
 
     const drawDisabled = !(game && canAct(game));
     el.drawBtn.disabled = drawDisabled;
@@ -724,15 +776,29 @@
     const cards = selectedPlayableCards(game);
     if (!cards.length) return;
 
+    // Oznaacz karty do wyrzucenia dla animacji
+    cards.forEach((c) => state.throwingCards.add(c.id));
+
     applyThrow(game, myId(), cards);
     clearSelections();
 
     if (state.mode === 'bot') {
       renderGame();
+      // Usuń oznaczenie animacji po renderze
+      setTimeout(() => {
+        state.throwingCards.clear();
+        renderGame();
+      }, 600);
       if (game.winnerUserId) saveMatchIfNeeded();
       else maybeBotMove();
       return;
     }
+
+    renderGame();
+    setTimeout(() => {
+      state.throwingCards.clear();
+      renderGame();
+    }, 600);
 
     const ok = await pushRoomState();
     if (ok && game.winnerUserId) saveMatchIfNeeded();
