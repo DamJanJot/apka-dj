@@ -11,7 +11,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY . .
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache \
+    && composer install --no-dev --optimize-autoloader --no-interaction
 
 EXPOSE 10000
 
